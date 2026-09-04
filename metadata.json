@@ -1,0 +1,6 @@
+{
+  "name": "NegoFact POS Bimoneda Venezuela",
+  "description": "Sistema de Punto de Venta (POS), Facturación, Inventario bimoneda USD/VES con sincronización de Tasa BCV, Split Payments, Módulo de Finanzas, Impresión Térmica e Instalador como Aplicación Web (PWA) para Windows y Android con soporte offline.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

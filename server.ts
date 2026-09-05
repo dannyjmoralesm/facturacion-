@@ -1,14 +1,147 @@
 import express from 'express';
+import http from 'http';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI, Type } from '@google/genai';
 import dotenv from 'dotenv';
+import { WebSocketServer, WebSocket } from 'ws';
+import { 
+  initDatabase, 
+  getDatabaseState, 
+  applyMutation, 
+  resetDatabaseToSeed, 
+  MutationRequest 
+} from './server/dbStore';
 
 dotenv.config();
 
 async function startServer() {
   const app = express();
+  const server = http.createServer(app);
   const PORT = 3000;
+
+  // Initialize central database on server
+  initDatabase();
+
+  // Setup WebSocket Server for real-time multi-device synchronization
+  const wss = new WebSocketServer({ noServer: true });
+
+  function broadcastClientCount() {
+    const count = wss.clients.size;
+    const msg = JSON.stringify({ type: 'CLIENTS_COUNT', count });
+    wss.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(msg);
+      }
+    });
+  }
+
+  function broadcastMutationToClients(mutation: MutationRequest, excludeSenderId?: string) {
+    const msg = JSON.stringify({
+      type: 'MUTATION_BROADCAST',
+      entity: mutation.entity,
+      action: mutation.action,
+      payload: mutation.payload,
+      senderId: mutation.senderId,
+      timestamp: mutation.timestamp || Date.now()
+    });
+
+    wss.clients.forEach((client: any) => {
+      if (client.readyState === WebSocket.OPEN) {
+        if (!excludeSenderId || client.deviceId !== excludeSenderId) {
+          client.send(msg);
+        }
+      }
+    });
+  }
+
+  // Heartbeat keep-alive check every 25 seconds
+  const heartbeatInterval = setInterval(() => {
+    wss.clients.forEach((ws: any) => {
+      if (ws.isAlive === false) return ws.terminate();
+      ws.isAlive = false;
+      ws.ping();
+    });
+  }, 25000);
+
+  wss.on('close', () => {
+    clearInterval(heartbeatInterval);
+  });
+
+  wss.on('connection', (ws: any, req) => {
+    ws.isAlive = true;
+    ws.on('pong', () => {
+      ws.isAlive = true;
+    });
+
+    // Send initial authoritative database state on connection
+    const currentState = getDatabaseState();
+    ws.send(JSON.stringify({
+      type: 'INIT_STATE',
+      payload: currentState,
+      clientCount: wss.clients.size,
+      serverTime: Date.now()
+    }));
+
+    broadcastClientCount();
+
+    ws.on('message', (messageRaw: string) => {
+      try {
+        const data = JSON.parse(messageRaw.toString());
+
+        if (data.type === 'REGISTER_DEVICE') {
+          ws.deviceId = data.deviceId;
+          ws.deviceName = data.deviceName;
+          return;
+        }
+
+        if (data.type === 'PING') {
+          ws.send(JSON.stringify({ type: 'PONG' }));
+          return;
+        }
+
+        if (data.type === 'MUTATION') {
+          const mutation: MutationRequest = {
+            entity: data.entity,
+            action: data.action,
+            payload: data.payload,
+            senderId: data.senderId,
+            timestamp: data.timestamp || Date.now()
+          };
+
+          // Apply to central persistent database
+          applyMutation(mutation);
+
+          // Broadcast to all other connected devices
+          broadcastMutationToClients(mutation, data.senderId);
+        }
+      } catch (err) {
+        console.error('Error handling WebSocket message:', err);
+      }
+    });
+
+    ws.on('close', () => {
+      broadcastClientCount();
+    });
+
+    ws.on('error', (err: any) => {
+      console.warn('WebSocket client error:', err?.message);
+    });
+  });
+
+  // Handle HTTP -> WebSocket Upgrade on /api/realtime
+  server.on('upgrade', (request, socket, head) => {
+    try {
+      const url = new URL(request.url || '', `http://${request.headers.host || 'localhost'}`);
+      if (url.pathname === '/api/realtime') {
+        wss.handleUpgrade(request, socket, head, (ws) => {
+          wss.emit('connection', ws, request);
+        });
+      }
+    } catch (e) {
+      socket.destroy();
+    }
+  });
 
   // Generous limit for image/document uploads (photos of invoices)
   app.use(express.json({ limit: '50mb' }));
@@ -177,6 +310,77 @@ Si algún dato secundario no está visible, déjalo como cadena vacía o lista v
     }
   });
 
+  // Central Database Real-Time Sync Endpoints
+  app.get('/api/sync/state', (req, res) => {
+    try {
+      const state = getDatabaseState();
+      res.json({
+        success: true,
+        data: state,
+        connectedDevices: wss.clients.size,
+        serverTime: Date.now()
+      });
+    } catch (e: any) {
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  app.post('/api/sync/mutate', (req, res) => {
+    try {
+      const { entity, action, payload, senderId } = req.body;
+      if (!entity || !action) {
+        return res.status(400).json({ success: false, error: 'entity and action are required' });
+      }
+
+      const mutation: MutationRequest = {
+        entity,
+        action,
+        payload,
+        senderId,
+        timestamp: Date.now()
+      };
+
+      const result = applyMutation(mutation);
+
+      // Broadcast to all WebSocket clients except the sender
+      broadcastMutationToClients(mutation, senderId);
+
+      res.json({
+        success: true,
+        lastUpdated: result.state.lastUpdated,
+        connectedDevices: wss.clients.size
+      });
+    } catch (e: any) {
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  app.post('/api/sync/reset', (req, res) => {
+    try {
+      const newState = resetDatabaseToSeed();
+      const resetMsg: MutationRequest = {
+        entity: 'all',
+        action: 'SYNC_BATCH',
+        payload: newState,
+        senderId: req.body.senderId,
+        timestamp: Date.now()
+      };
+      broadcastMutationToClients(resetMsg);
+      res.json({ success: true, data: newState });
+    } catch (e: any) {
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  app.get('/api/sync/info', (req, res) => {
+    res.json({
+      status: 'active',
+      engine: 'WebSocket + File JSON Store',
+      connectedDevices: wss.clients.size,
+      time: new Date().toISOString()
+    });
+  });
+
   // Vite integration
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
@@ -192,8 +396,8 @@ Si algún dato secundario no está visible, déjalo como cadena vacía o lista v
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`NegoFact server running on http://0.0.0.0:${PORT}`);
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`NegoFact server running with WebSockets on http://0.0.0.0:${PORT}`);
   });
 }
 

@@ -23,7 +23,10 @@ import {
   Monitor,
   Sparkles,
   MoreHorizontal,
-  X
+  X,
+  Wifi,
+  WifiOff,
+  Radio
 } from 'lucide-react';
 import { CashShift, UserRole, AppUser } from '../types';
 import { formatUSD, formatVES } from '../utils/bcvService';
@@ -45,6 +48,9 @@ interface NavbarProps {
   onOpenSettings: () => void;
   onOpenArchitecture: () => void;
   onOpenPWAInstall: () => void;
+  onOpenSyncModal?: () => void;
+  syncStatus?: 'connected' | 'connecting' | 'reconnecting' | 'offline' | 'error';
+  syncConnectedCount?: number;
   activeShift: CashShift | null;
   lowStockCount?: number;
   pendingDebtsCount?: number;
@@ -66,6 +72,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenSettings,
   onOpenArchitecture,
   onOpenPWAInstall,
+  onOpenSyncModal,
+  syncStatus = 'connected',
+  syncConnectedCount = 1,
   activeShift,
   lowStockCount = 0,
   pendingDebtsCount = 0,
@@ -186,6 +195,38 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {activeShift ? 'Caja ON' : 'Caja OFF'}
               </span>
             </button>
+
+            {/* Real-time Multi-Device Sync Indicator */}
+            {onOpenSyncModal && (
+              <button
+                type="button"
+                onClick={onOpenSyncModal}
+                className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-semibold transition border ${
+                  syncStatus === 'connected'
+                    ? 'bg-emerald-950/70 text-emerald-300 border-emerald-700/60 hover:bg-emerald-900/60 shadow-xs'
+                    : 'bg-amber-950/70 text-amber-300 border-amber-700/60 hover:bg-amber-900/60 shadow-xs'
+                }`}
+                title={`Sincronización en tiempo real: ${syncConnectedCount} dispositivo(s) conectado(s). Clic para conectar otros teléfonos o sincronizar.`}
+              >
+                {syncStatus === 'connected' ? (
+                  <>
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    <Wifi className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="font-mono text-[11px]">
+                      {syncConnectedCount} <span className="hidden sm:inline">{syncConnectedCount === 1 ? 'Disp' : 'Disps'}</span>
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <WifiOff className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                    <span className="font-mono text-[11px] hidden sm:inline">Reconectando</span>
+                  </>
+                )}
+              </button>
+            )}
 
             {/* User Account & Role Switcher */}
             <button
@@ -548,6 +589,25 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <div>
                   <div className="font-bold text-xs">Configuración</div>
                   <div className="text-[10px] text-slate-500">Datos & Respaldo</div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsMobileMoreMenuOpen(false);
+                  onOpenSyncModal?.();
+                }}
+                className="p-3 rounded-xl bg-slate-950/80 border border-emerald-500/30 hover:bg-slate-800 text-left flex items-center gap-2.5 transition text-slate-300 col-span-2"
+              >
+                <Radio className="w-4 h-4 text-emerald-400 shrink-0 animate-pulse" />
+                <div>
+                  <div className="font-bold text-xs flex items-center gap-1.5">
+                    <span>Sincronización Multi-Dispositivo</span>
+                    <span className="px-1.5 py-0.2 bg-emerald-950 text-emerald-300 text-[9px] rounded font-bold font-mono">
+                      {syncConnectedCount} {syncConnectedCount === 1 ? 'Activo' : 'Activos'}
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-slate-500">Conectar teléfonos, tablets y PCs en tiempo real</div>
                 </div>
               </button>
 

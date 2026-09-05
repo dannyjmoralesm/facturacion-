@@ -45,6 +45,13 @@ import {
   PWAInstallModal 
 } from './components/PWAInstallModal';
 import { 
+  SyncModal 
+} from './components/Sync/SyncModal';
+import { 
+  realtimeSync, 
+  ConnectionStatus 
+} from './services/realtimeSync';
+import { 
   OfflineIndicator 
 } from './components/OfflineIndicator';
 
@@ -153,6 +160,25 @@ export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isArchitectureOpen, setIsArchitectureOpen] = useState(false);
   const [isPWAInstallOpen, setIsPWAInstallOpen] = useState(false);
+  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+
+  // Real-time synchronization state
+  const [syncStatus, setSyncStatus] = useState<ConnectionStatus>(realtimeSync.getStatus());
+  const [syncConnectedCount, setSyncConnectedCount] = useState<number>(realtimeSync.getConnectedDevicesCount());
+  const [syncToastMessage, setSyncToastMessage] = useState<string | null>(null);
+  const [recentSyncEvents, setRecentSyncEvents] = useState<Array<{ id: string; time: string; text: string; type: 'sale' | 'product' | 'debt' | 'shift' | 'info' }>>([
+    { id: 'init-1', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), text: 'Sistema conectado con sincronización en tiempo real', type: 'info' }
+  ]);
+
+  const addSyncEvent = useCallback((text: string, type: 'sale' | 'product' | 'debt' | 'shift' | 'info' = 'info') => {
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const newEvent = { id: `evt-${Date.now()}-${Math.random()}`, time, text, type };
+    setRecentSyncEvents(prev => [newEvent, ...prev.slice(0, 30)]);
+    setSyncToastMessage(text);
+    setTimeout(() => {
+      setSyncToastMessage(prev => prev === text ? null : prev);
+    }, 4000);
+  }, []);
 
   // Load all initial data from local storage
   const loadAllData = useCallback(() => {
@@ -204,10 +230,215 @@ export default function App() {
     }
   }, []);
 
+  // Handle incoming full state from central server
+  const handleRemoteFullState = useCallback((serverState: any) => {
+    if (!serverState) return;
+    if (Array.isArray(serverState.products) && serverState.products.length > 0) {
+      setProducts(serverState.products);
+      saveProducts(serverState.products);
+    }
+    if (Array.isArray(serverState.customers) && serverState.customers.length > 0) {
+      setCustomers(serverState.customers);
+      saveCustomers(serverState.customers);
+    }
+    if (Array.isArray(serverState.sales)) {
+      setSales(serverState.sales);
+      saveSales(serverState.sales);
+    }
+    if (Array.isArray(serverState.quotes)) {
+      setQuotes(serverState.quotes);
+      saveQuotes(serverState.quotes);
+    }
+    if (Array.isArray(serverState.debts)) {
+      setDebts(serverState.debts);
+      saveDebts(serverState.debts);
+    }
+    if (Array.isArray(serverState.shifts)) {
+      setShifts(serverState.shifts);
+      saveShifts(serverState.shifts);
+      const open = serverState.shifts.find((s: any) => s.status === 'open') || null;
+      setActiveShift(open);
+    }
+    if (Array.isArray(serverState.expenses)) {
+      setExpenses(serverState.expenses);
+      saveExpenses(serverState.expenses);
+    }
+    if (Array.isArray(serverState.suppliers)) {
+      setSuppliers(serverState.suppliers);
+      saveSuppliers(serverState.suppliers);
+    }
+    if (Array.isArray(serverState.supplierDebts)) {
+      setSupplierDebts(serverState.supplierDebts);
+      saveSupplierDebts(serverState.supplierDebts);
+    }
+    if (serverState.profile) {
+      setProfile(serverState.profile);
+      saveBusinessProfile(serverState.profile);
+    }
+    if (Array.isArray(serverState.users) && serverState.users.length > 0) {
+      setUsers(serverState.users);
+      saveUsers(serverState.users);
+    }
+    addSyncEvent('Base de datos central sincronizada con éxito', 'info');
+  }, [addSyncEvent]);
+
+  // Handle incoming remote mutation broadcasted from other devices
+  const handleRemoteMutation = useCallback((entity: string, action: string, payload: any, senderId: string) => {
+    if (senderId && senderId === realtimeSync.getDeviceId()) {
+      return; // Ignore own echoes
+    }
+
+    if (entity === 'sales' && action === 'CREATE' && payload) {
+      setSales(prev => {
+        if (prev.some(s => s.id === payload.id)) return prev;
+        const updated = [payload, ...prev];
+        saveSales(updated);
+        return updated;
+      });
+      addSyncEvent(`Venta recibida en vivo: ${payload.invoiceNumber || 'Comprobante'} (${payload.customerName || 'Cliente'})`, 'sale');
+    } else if (entity === 'products') {
+      if (action === 'CREATE' || action === 'UPDATE') {
+        setProducts(prev => {
+          const exists = prev.some(p => p.id === payload.id);
+          const updated = exists ? prev.map(p => p.id === payload.id ? payload : p) : [payload, ...prev];
+          saveProducts(updated);
+          return updated;
+        });
+        addSyncEvent(`Inventario actualizado: ${payload.name}`, 'product');
+      } else if (action === 'DELETE') {
+        const prodId = typeof payload === 'string' ? payload : payload.id;
+        setProducts(prev => {
+          const updated = prev.filter(p => p.id !== prodId);
+          saveProducts(updated);
+          return updated;
+        });
+        addSyncEvent('Producto eliminado desde otro terminal', 'product');
+      } else if (action === 'UPDATE_STOCK_BATCH' && Array.isArray(payload)) {
+        setProducts(prev => {
+          const updated = prev.map(prod => {
+            const match = payload.find((item: any) => item.id === prod.id);
+            return match ? { ...prod, stock: match.stock } : prod;
+          });
+          saveProducts(updated);
+          return updated;
+        });
+        addSyncEvent('Stock de productos sincronizado', 'product');
+      }
+    } else if (entity === 'debts') {
+      setDebts(prev => {
+        const exists = prev.some(d => d.id === payload.id);
+        const updated = exists ? prev.map(d => d.id === payload.id ? payload : d) : [payload, ...prev];
+        saveDebts(updated);
+        return updated;
+      });
+      addSyncEvent(`Libreta de fiados actualizada: ${payload.customerName || 'Cliente'}`, 'debt');
+    } else if (entity === 'shifts') {
+      setShifts(prev => {
+        const exists = prev.some(s => s.id === payload.id);
+        const updated = exists ? prev.map(s => s.id === payload.id ? payload : s) : [payload, ...prev];
+        saveShifts(updated);
+        const open = updated.find(s => s.status === 'open') || null;
+        setActiveShift(open);
+        return updated;
+      });
+      addSyncEvent('Turno de caja actualizado en vivo', 'shift');
+    } else if (entity === 'expenses') {
+      if (action === 'CREATE' || action === 'UPDATE') {
+        setExpenses(prev => {
+          const exists = prev.some(e => e.id === payload.id);
+          const updated = exists ? prev.map(e => e.id === payload.id ? payload : e) : [payload, ...prev];
+          saveExpenses(updated);
+          return updated;
+        });
+        addSyncEvent(`Egreso registrado: ${payload.description || ''}`, 'info');
+      } else if (action === 'DELETE') {
+        const expId = typeof payload === 'string' ? payload : payload.id;
+        setExpenses(prev => {
+          const updated = prev.filter(e => e.id !== expId);
+          saveExpenses(updated);
+          return updated;
+        });
+      }
+    } else if (entity === 'customers') {
+      setCustomers(prev => {
+        const exists = prev.some(c => c.id === payload.id);
+        const updated = exists ? prev.map(c => c.id === payload.id ? payload : c) : [payload, ...prev];
+        saveCustomers(updated);
+        return updated;
+      });
+      addSyncEvent(`Cliente registrado / actualizado: ${payload.name || ''}`, 'info');
+    } else if (entity === 'quotes') {
+      if (action === 'CREATE' || action === 'UPDATE') {
+        setQuotes(prev => {
+          const exists = prev.some(q => q.id === payload.id);
+          const updated = exists ? prev.map(q => q.id === payload.id ? payload : q) : [payload, ...prev];
+          saveQuotes(updated);
+          return updated;
+        });
+      } else if (action === 'DELETE') {
+        const qId = typeof payload === 'string' ? payload : payload.id;
+        setQuotes(prev => {
+          const updated = prev.filter(q => q.id !== qId);
+          saveQuotes(updated);
+          return updated;
+        });
+      }
+    } else if (entity === 'profile') {
+      setProfile(payload);
+      saveBusinessProfile(payload);
+      addSyncEvent('Datos de la empresa actualizados', 'info');
+    }
+  }, [addSyncEvent]);
+
   useEffect(() => {
     loadAllData();
     syncRate();
-  }, [loadAllData, syncRate]);
+
+    // Connect to central realtime WebSocket server
+    realtimeSync.connect();
+
+    const unsubscribe = realtimeSync.subscribe({
+      onStatusChange: (status, count) => {
+        setSyncStatus(status);
+        setSyncConnectedCount(count);
+      },
+      onMutation: (entity, action, payload, senderId) => {
+        handleRemoteMutation(entity, action, payload, senderId);
+      },
+      onFullState: (serverState) => {
+        handleRemoteFullState(serverState);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [loadAllData, syncRate, handleRemoteMutation, handleRemoteFullState]);
+
+  // Manual trigger to pull all data from server
+  const handleForceSyncDownload = async () => {
+    const data = await realtimeSync.fetchCentralState();
+    if (data) {
+      handleRemoteFullState(data);
+    }
+  };
+
+  // Manual trigger to push local database to server
+  const handleForceSyncUpload = async () => {
+    const fullState = {
+      products,
+      customers,
+      sales,
+      quotes,
+      debts,
+      shifts,
+      expenses,
+      suppliers,
+      supplierDebts,
+      profile,
+      users
+    };
+    await realtimeSync.pushFullLocalState(fullState);
+    addSyncEvent('Datos locales publicados en el servidor central', 'info');
+  };
 
   // Handle Manual BCV Rate change
   const handleUpdateRate = (newRate: number) => {
@@ -278,6 +509,7 @@ export default function App() {
     const updated = [newCust, ...customers];
     setCustomers(updated);
     saveCustomers(updated);
+    realtimeSync.broadcastMutation('customers', 'CREATE', newCust);
   };
 
   // Checkout flow trigger from POS
@@ -353,6 +585,8 @@ export default function App() {
     saveProducts(updatedProducts);
 
     // 3. If credit was generated (fiado), create DebtAccount
+    let createdDebt: DebtAccount | null = null;
+    let updatedCustomersList = customers;
     if (totals.creditAmountUSD > 0) {
       const newDebt: DebtAccount = {
         id: `debt-${Date.now()}`,
@@ -370,13 +604,14 @@ export default function App() {
         status: 'pending',
         installments: []
       };
+      createdDebt = newDebt;
 
       const updatedDebts = [newDebt, ...debts];
       setDebts(updatedDebts);
       saveDebts(updatedDebts);
 
       // Update customer total debt
-      const updatedCustomers = customers.map(c => {
+      updatedCustomersList = customers.map(c => {
         if (c.id === checkoutCustomer.id) {
           return {
             ...c,
@@ -385,11 +620,12 @@ export default function App() {
         }
         return c;
       });
-      setCustomers(updatedCustomers);
-      saveCustomers(updatedCustomers);
+      setCustomers(updatedCustomersList);
+      saveCustomers(updatedCustomersList);
     }
 
     // 4. Update Cash Shift if active
+    let updatedShiftObj: CashShift | null = null;
     if (activeShift) {
       let shiftCashUSD = activeShift.expectedCashUSD;
       let shiftCashVES = activeShift.expectedCashVES;
@@ -418,6 +654,7 @@ export default function App() {
         totalSalesVES: activeShift.totalSalesVES + totals.totalVES,
         salesCount: activeShift.salesCount + 1
       };
+      updatedShiftObj = updatedShift;
 
       setActiveShift(updatedShift);
       const updatedShifts = shifts.map(s => s.id === updatedShift.id ? updatedShift : s);
@@ -433,6 +670,18 @@ export default function App() {
     };
     setProfile(updatedProfile);
     saveBusinessProfile(updatedProfile);
+
+    // Broadcast changes to central server & other connected devices
+    realtimeSync.broadcastMutation('sales', 'CREATE', newSale);
+    realtimeSync.broadcastMutation('products', 'UPDATE_STOCK_BATCH', updatedProducts);
+    if (createdDebt) {
+      realtimeSync.broadcastMutation('debts', 'CREATE', createdDebt);
+      realtimeSync.broadcastMutation('customers', 'UPDATE_BATCH', updatedCustomersList);
+    }
+    if (updatedShiftObj) {
+      realtimeSync.broadcastMutation('shifts', 'UPDATE', updatedShiftObj);
+    }
+    realtimeSync.broadcastMutation('profile', 'UPDATE', updatedProfile);
 
     // 6. Close checkout and show receipt
     setIsCheckoutOpen(false);
@@ -474,6 +723,9 @@ export default function App() {
     };
     setProfile(updatedProfile);
     saveBusinessProfile(updatedProfile);
+
+    realtimeSync.broadcastMutation('quotes', 'CREATE', newQuote);
+    realtimeSync.broadcastMutation('profile', 'UPDATE', updatedProfile);
   };
 
   // Delete Quote
@@ -481,6 +733,7 @@ export default function App() {
     const updated = quotes.filter(q => q.id !== quoteId);
     setQuotes(updated);
     saveQuotes(updated);
+    realtimeSync.broadcastMutation('quotes', 'DELETE', quoteId);
   };
 
   // Save / Update Product
@@ -494,6 +747,7 @@ export default function App() {
     }
     setProducts(updated);
     saveProducts(updated);
+    realtimeSync.broadcastMutation('products', exists ? 'UPDATE' : 'CREATE', prod);
   };
 
   // Delete Product
@@ -501,23 +755,27 @@ export default function App() {
     const updated = products.filter(p => p.id !== prodId);
     setProducts(updated);
     saveProducts(updated);
+    realtimeSync.broadcastMutation('products', 'DELETE', prodId);
   };
 
   // Register Installment on Debt (Libreta de Fiados)
   const handleRegisterInstallment = (debtId: string, installment: DebtPaymentInstallment) => {
+    let affectedDebt: DebtAccount | null = null;
     const updatedDebts = debts.map(d => {
       if (d.id === debtId) {
         const newPaid = Number((d.paidDebtUSD + installment.amountUSD).toFixed(2));
         const newRemaining = Math.max(0, Number((d.originalDebtUSD - newPaid).toFixed(2)));
         const newStatus = newRemaining <= 0.01 ? ('paid' as const) : ('partially_paid' as const);
 
-        return {
+        const updatedD: DebtAccount = {
           ...d,
           paidDebtUSD: newPaid,
           remainingDebtUSD: newRemaining,
           status: newStatus,
           installments: [...d.installments, installment]
         };
+        affectedDebt = updatedD;
+        return updatedD;
       }
       return d;
     });
@@ -526,9 +784,10 @@ export default function App() {
     saveDebts(updatedDebts);
 
     // Update customer debt total
+    let updatedCustList = customers;
     const debtObj = debts.find(d => d.id === debtId);
     if (debtObj) {
-      const updatedCustomers = customers.map(c => {
+      updatedCustList = customers.map(c => {
         if (c.id === debtObj.customerId) {
           return {
             ...c,
@@ -537,11 +796,12 @@ export default function App() {
         }
         return c;
       });
-      setCustomers(updatedCustomers);
-      saveCustomers(updatedCustomers);
+      setCustomers(updatedCustList);
+      saveCustomers(updatedCustList);
     }
 
     // If active shift and cash payment, update cash register
+    let updatedShiftObj: CashShift | null = null;
     if (activeShift) {
       let deltaUSD = 0;
       let deltaVES = 0;
@@ -557,11 +817,21 @@ export default function App() {
           expectedCashUSD: activeShift.expectedCashUSD + deltaUSD,
           expectedCashVES: activeShift.expectedCashVES + deltaVES
         };
+        updatedShiftObj = updatedShift;
         setActiveShift(updatedShift);
         const updatedShifts = shifts.map(s => s.id === updatedShift.id ? updatedShift : s);
         setShifts(updatedShifts);
         saveShifts(updatedShifts);
       }
+    }
+
+    // Broadcast to other devices
+    if (affectedDebt) {
+      realtimeSync.broadcastMutation('debts', 'UPDATE', affectedDebt);
+      realtimeSync.broadcastMutation('customers', 'UPDATE_BATCH', updatedCustList);
+    }
+    if (updatedShiftObj) {
+      realtimeSync.broadcastMutation('shifts', 'UPDATE', updatedShiftObj);
     }
   };
 
@@ -604,6 +874,7 @@ export default function App() {
     const updated = [newShift, ...shifts];
     setShifts(updated);
     saveShifts(updated);
+    realtimeSync.broadcastMutation('shifts', 'CREATE', newShift);
   };
 
   // Add Cash Movement (Efectivo entrada/salida)
@@ -645,6 +916,7 @@ export default function App() {
     const updatedShifts = shifts.map(s => s.id === updatedShift.id ? updatedShift : s);
     setShifts(updatedShifts);
     saveShifts(updatedShifts);
+    realtimeSync.broadcastMutation('shifts', 'UPDATE', updatedShift);
   };
 
   // Close Shift (Arqueo & Cierre Z)
@@ -666,6 +938,7 @@ export default function App() {
     const updatedShifts = shifts.map(s => s.id === closedShift.id ? closedShift : s);
     setShifts(updatedShifts);
     saveShifts(updatedShifts);
+    realtimeSync.broadcastMutation('shifts', 'UPDATE', closedShift);
   };
 
   // --- Financial Module Handlers (Finanzas & Tesorería) ---
@@ -675,6 +948,7 @@ export default function App() {
     const updatedExpenses = [newExpense, ...expenses];
     setExpenses(updatedExpenses);
     saveExpenses(updatedExpenses);
+    realtimeSync.broadcastMutation('expenses', 'CREATE', newExpense);
 
     // If expense affects cash drawer / active shift, register cash movement in real time
     if (newExpense.affectsCashShift && activeShift) {
@@ -695,6 +969,7 @@ export default function App() {
     const updatedExpenses = expenses.filter(e => e.id !== expenseId);
     setExpenses(updatedExpenses);
     saveExpenses(updatedExpenses);
+    realtimeSync.broadcastMutation('expenses', 'DELETE', expenseId);
   };
 
   // 2. Supplier Debt Handler
@@ -724,6 +999,9 @@ export default function App() {
 
     setSuppliers(updatedSuppliers);
     saveSuppliers(updatedSuppliers);
+
+    realtimeSync.broadcastMutation('supplierDebts', 'CREATE', newDebt);
+    realtimeSync.broadcastMutation('suppliers', 'UPDATE_BATCH', updatedSuppliers);
   };
 
   // 3. Supplier Payment / Installment Handler
@@ -753,9 +1031,10 @@ export default function App() {
     saveSupplierDebts(updatedDebts);
 
     // Update supplier totalDebtUSD
+    let updatedSuppliersList = suppliers;
     if (affectedDebt) {
       const targetDebt: SupplierDebt = affectedDebt;
-      const updatedSuppliers = suppliers.map(s => {
+      updatedSuppliersList = suppliers.map(s => {
         if (s.id === targetDebt.supplierId || s.rif === targetDebt.supplierRif) {
           return {
             ...s,
@@ -764,8 +1043,13 @@ export default function App() {
         }
         return s;
       });
-      setSuppliers(updatedSuppliers);
-      saveSuppliers(updatedSuppliers);
+      setSuppliers(updatedSuppliersList);
+      saveSuppliers(updatedSuppliersList);
+    }
+
+    if (affectedDebt) {
+      realtimeSync.broadcastMutation('supplierDebts', 'UPDATE', affectedDebt);
+      realtimeSync.broadcastMutation('suppliers', 'UPDATE_BATCH', updatedSuppliersList);
     }
 
     // If installment was paid out of the active shift's cash drawer, deduce it in real time
@@ -803,6 +1087,9 @@ export default function App() {
     });
     setCustomers(updatedCustomers);
     saveCustomers(updatedCustomers);
+
+    realtimeSync.broadcastMutation('debts', 'CREATE', newDebt);
+    realtimeSync.broadcastMutation('customers', 'UPDATE_BATCH', updatedCustomers);
   };
 
   return (
@@ -828,6 +1115,9 @@ export default function App() {
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenArchitecture={() => setIsArchitectureOpen(true)}
         onOpenPWAInstall={() => setIsPWAInstallOpen(true)}
+        onOpenSyncModal={() => setIsSyncModalOpen(true)}
+        syncStatus={syncStatus}
+        syncConnectedCount={syncConnectedCount}
         activeShift={activeShift}
         lowStockCount={products.filter(p => p.stock <= p.minStock).length}
         pendingDebtsCount={debts.filter(d => d.status !== 'paid').length}
@@ -1028,6 +1318,40 @@ export default function App() {
           isOpen={isPWAInstallOpen}
           onClose={() => setIsPWAInstallOpen(false)}
         />
+      )}
+
+      {/* Modal 8: Real-Time Multi-Device Sync Hub */}
+      {isSyncModalOpen && (
+        <SyncModal
+          isOpen={isSyncModalOpen}
+          onClose={() => setIsSyncModalOpen(false)}
+          status={syncStatus}
+          connectedDevicesCount={syncConnectedCount}
+          recentEvents={recentSyncEvents}
+          onForceSyncDownload={handleForceSyncDownload}
+          onForceSyncUpload={handleForceSyncUpload}
+        />
+      )}
+
+      {/* Floating Live Sync Toast Notification */}
+      {syncToastMessage && (
+        <div 
+          id="realtime-sync-toast"
+          className="fixed bottom-16 right-4 z-50 max-w-sm bg-slate-900/95 border border-emerald-500/50 text-slate-100 px-3.5 py-2.5 rounded-xl shadow-2xl backdrop-blur-md flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300"
+        >
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-emerald-400 leading-tight">Sincronización en Vivo</p>
+            <p className="text-xs text-slate-200 truncate">{syncToastMessage}</p>
+          </div>
+          <button 
+            type="button" 
+            onClick={() => setSyncToastMessage(null)}
+            className="text-slate-400 hover:text-white text-xs p-1"
+          >
+            ✕
+          </button>
+        </div>
       )}
 
       {/* Offline Status Connectivity Banner */}

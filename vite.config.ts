@@ -6,6 +6,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(() => {
   return {
+    base: './',
     plugins: [
       react(), 
       tailwindcss(),
@@ -13,7 +14,7 @@ export default defineConfig(() => {
         registerType: 'autoUpdate',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'icon.svg', 'pwa-192x192.png', 'pwa-512x512.png'],
         manifest: {
-          id: '/',
+          id: './',
           name: 'NegoFact POS Bimoneda',
           short_name: 'NegoFact',
           description: 'Sistema de Punto de Venta (POS), Facturación, Inventario bimoneda USD/VES y Módulo de Finanzas.',
@@ -21,8 +22,8 @@ export default defineConfig(() => {
           background_color: '#0f172a',
           display: 'standalone',
           orientation: 'any',
-          start_url: '/',
-          scope: '/',
+          start_url: './',
+          scope: './',
           categories: ['business', 'finance', 'productivity', 'utilities'],
           icons: [
             {

@@ -20,13 +20,26 @@ El navegador intentaba buscar los scripts en `https://tu-usuario.github.io/asset
 
 ---
 
-## ⚙️ Pasos para activar GitHub Pages en tu Repositorio
+## ⚙️ Pasos para ver la aplicación funcionando en GitHub Pages
 
-1. En tu repositorio de GitHub, entra en la pestaña **Settings** (Configuración).
+Tienes **2 opciones** para visualizar la aplicación sin pantalla en blanco:
+
+### Opción 1: Publicar desde la carpeta `/docs` (¡La más rápida y directa!)
+Esta opción no requiere esperar flujos de Actions ni configurar permisos especiales:
+1. En tu repositorio de GitHub, haz clic en la pestaña **Settings** (Configuración).
 2. En el menú lateral izquierdo, haz clic en **Pages**.
-3. En la sección **Build and deployment** > **Source**, selecciona:
-   - **GitHub Actions**
-4. ¡Listo! El archivo `.github/workflows/deploy.yml` compilará la aplicación y la publicará en cuestión de minutos.
+3. En **Build and deployment** > **Source**, selecciona: **"Deploy from a branch"**.
+4. En **Branch**:
+   - Selecciona tu rama: **`main`** (o `master`).
+   - En el selector de carpeta al lado de la rama, cambia de `/ (root)` a: **`/docs`** 👈 *(¡Muy importante! No dejes la raíz `/` porque la raíz contiene código sin compilar).*
+5. Haz clic en **Save** (Guardar).
+6. En 1 minuto tu página estará en línea en `https://tu-usuario.github.io/tu-repositorio/` funcionando perfectamente.
+
+### Opción 2: Usar GitHub Actions Automatizado
+1. En **Settings** > **Pages** > **Source**, selecciona: **GitHub Actions**.
+2. GitHub ejecutará automáticamente el archivo `.github/workflows/deploy.yml` que compilará y desplegará la versión de producción en cada push.
+
+> ⚠️ **Importante**: Si acabas de recibir estos cambios en AI Studio, asegúrate de **Exportar/Sincronizar el repositorio a GitHub** desde el menú de la esquina superior para que la nueva carpeta `/docs/` y las correcciones se suban a tu cuenta de GitHub.
 
 ---
 

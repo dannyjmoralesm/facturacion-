@@ -301,8 +301,8 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
         </div>
       </div>
 
-      {/* Products Table */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg">
+      {/* Products Table (Desktop & Tablets >= md) */}
+      <div className="hidden md:block bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg">
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left">
             <thead className="bg-slate-950 text-slate-400 font-semibold border-b border-slate-800 uppercase tracking-wider text-[11px]">
@@ -408,6 +408,110 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Mobile Card List (Phones & Small Screens < md) */}
+      <div className="md:hidden space-y-3">
+        {filteredProducts.length === 0 ? (
+          <div className="text-center py-10 bg-slate-900 border border-slate-800 rounded-2xl text-slate-400 text-xs">
+            No se encontraron productos con los filtros actuales.
+          </div>
+        ) : (
+          filteredProducts.map(p => {
+            const isLowStock = p.type === 'physical' && p.stock <= p.minStock;
+            const isOutOfStock = p.type === 'physical' && p.stock <= 0;
+            const margin = p.costUSD && p.priceUSD ? ((p.priceUSD - p.costUSD) / p.priceUSD * 100).toFixed(0) : null;
+
+            return (
+              <div 
+                key={p.id} 
+                className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-sm space-y-3"
+              >
+                {/* Top Row: Name and Badges */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                      <span className="text-[10px] bg-slate-800 text-slate-300 font-semibold px-2 py-0.5 rounded-md">
+                        {p.category}
+                      </span>
+                      {p.type === 'service' ? (
+                        <span className="text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-semibold px-2 py-0.5 rounded-md flex items-center gap-1">
+                          <Wrench className="w-2.5 h-2.5" /> Servicio
+                        </span>
+                      ) : (
+                        <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold px-2 py-0.5 rounded-md flex items-center gap-1">
+                          <Package className="w-2.5 h-2.5" /> Físico
+                        </span>
+                      )}
+                    </div>
+                    <h4 className="font-bold text-sm text-white">{p.name}</h4>
+                    <div className="text-[11px] font-mono text-slate-400 mt-0.5">
+                      <span>Cód: {p.code}</span>
+                      {p.barcode && <span className="ml-2">| Barra: {p.barcode}</span>}
+                    </div>
+                  </div>
+
+                  {/* Quick Action Buttons */}
+                  {userRole === 'admin' && (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={() => handleOpenEdit(p)}
+                        className="p-2 text-slate-300 hover:text-white bg-slate-800 active:bg-slate-700 rounded-xl transition touch-manipulation min-w-[36px] min-h-[36px] flex items-center justify-center"
+                        aria-label="Editar"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => onDeleteProduct(p.id)}
+                        className="p-2 text-slate-400 hover:text-rose-400 bg-slate-800 active:bg-rose-950/40 rounded-xl transition touch-manipulation min-w-[36px] min-h-[36px] flex items-center justify-center"
+                        aria-label="Eliminar"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Bottom Row: Prices, Cost & Stock */}
+                <div className="pt-2 border-t border-slate-800 flex items-center justify-between gap-2 flex-wrap bg-slate-950/50 -mx-4 -mb-4 p-3 rounded-b-2xl">
+                  <div>
+                    <div className="text-sm font-black font-mono text-emerald-400">
+                      {formatUSD(p.priceUSD)}
+                    </div>
+                    <div className="text-[11px] font-mono text-slate-400">
+                      {formatVES(p.priceUSD * bcvRate)}
+                    </div>
+                    {userRole === 'admin' && p.costUSD && (
+                      <div className="text-[10px] text-slate-500 font-mono">
+                        Costo: {formatUSD(p.costUSD)} {margin && <span className="text-emerald-400">({margin}%)</span>}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    {p.type === 'service' ? (
+                      <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 text-xs font-mono">
+                        Stock Ilimitado
+                      </span>
+                    ) : isOutOfStock ? (
+                      <span className="px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-bold font-mono">
+                        Agotado (0 {p.unit})
+                      </span>
+                    ) : isLowStock ? (
+                      <span className="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold font-mono flex items-center gap-1">
+                        <AlertTriangle className="w-3.5 h-3.5" /> {p.stock} {p.unit}
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-200 border border-slate-700 text-xs font-bold font-mono">
+                        Stock: {p.stock} {p.unit}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
 
       {/* Edit / Create Product Modal */}

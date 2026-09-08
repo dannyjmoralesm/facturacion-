@@ -45,7 +45,7 @@ let isInitializing = false;
 let isInitialized = false;
 
 export async function ensureFirestoreInitialized(): Promise<void> {
-  if (isInitialized || isInitializing) return;
+  if (!db || isInitialized || isInitializing) return;
   isInitializing = true;
 
   try {
@@ -97,6 +97,7 @@ export async function ensureFirestoreInitialized(): Promise<void> {
 // -------------------------------------------------------------
 
 export function subscribeProducts(onData: (products: Product[]) => void, onError?: (err: any) => void): Unsubscribe {
+  if (!db) return () => {};
   return onSnapshot(
     collection(db, 'products'),
     (snapshot) => {
@@ -116,6 +117,7 @@ export function subscribeProducts(onData: (products: Product[]) => void, onError
 }
 
 export function subscribeSales(onData: (sales: Sale[]) => void, onError?: (err: any) => void): Unsubscribe {
+  if (!db) return () => {};
   return onSnapshot(
     collection(db, 'sales'),
     (snapshot) => {
@@ -135,6 +137,7 @@ export function subscribeSales(onData: (sales: Sale[]) => void, onError?: (err: 
 }
 
 export function subscribeCustomers(onData: (customers: Customer[]) => void, onError?: (err: any) => void): Unsubscribe {
+  if (!db) return () => {};
   return onSnapshot(
     collection(db, 'customers'),
     (snapshot) => {
@@ -152,6 +155,7 @@ export function subscribeCustomers(onData: (customers: Customer[]) => void, onEr
 }
 
 export function subscribeDebts(onData: (debts: DebtAccount[]) => void, onError?: (err: any) => void): Unsubscribe {
+  if (!db) return () => {};
   return onSnapshot(
     collection(db, 'debts'),
     (snapshot) => {
@@ -170,6 +174,7 @@ export function subscribeDebts(onData: (debts: DebtAccount[]) => void, onError?:
 }
 
 export function subscribeShifts(onData: (shifts: CashShift[]) => void, onError?: (err: any) => void): Unsubscribe {
+  if (!db) return () => {};
   return onSnapshot(
     collection(db, 'shifts'),
     (snapshot) => {
@@ -188,6 +193,7 @@ export function subscribeShifts(onData: (shifts: CashShift[]) => void, onError?:
 }
 
 export function subscribeExpenses(onData: (expenses: Expense[]) => void, onError?: (err: any) => void): Unsubscribe {
+  if (!db) return () => {};
   return onSnapshot(
     collection(db, 'expenses'),
     (snapshot) => {
@@ -206,6 +212,7 @@ export function subscribeExpenses(onData: (expenses: Expense[]) => void, onError
 }
 
 export function subscribeSuppliers(onData: (suppliers: Supplier[]) => void, onError?: (err: any) => void): Unsubscribe {
+  if (!db) return () => {};
   return onSnapshot(
     collection(db, 'suppliers'),
     (snapshot) => {
@@ -223,6 +230,7 @@ export function subscribeSuppliers(onData: (suppliers: Supplier[]) => void, onEr
 }
 
 export function subscribeSupplierDebts(onData: (debts: SupplierDebt[]) => void, onError?: (err: any) => void): Unsubscribe {
+  if (!db) return () => {};
   return onSnapshot(
     collection(db, 'supplierDebts'),
     (snapshot) => {
@@ -244,6 +252,7 @@ export function subscribeGlobalSettings(
   onData: (settings: { profile?: BusinessProfile; bcvRate?: number; rateDate?: string }) => void,
   onError?: (err: any) => void
 ): Unsubscribe {
+  if (!db) return () => {};
   return onSnapshot(
     doc(db, 'settings', 'global'),
     (docSnap) => {
@@ -263,16 +272,19 @@ export function subscribeGlobalSettings(
 // -------------------------------------------------------------
 
 export async function firestoreSaveProduct(product: Product): Promise<void> {
+  if (!db) return;
   const ref = doc(db, 'products', product.id);
   await setDoc(ref, cleanForFirestore(product));
 }
 
 export async function firestoreDeleteProduct(productId: string): Promise<void> {
+  if (!db) return;
   const ref = doc(db, 'products', productId);
   await deleteDoc(ref);
 }
 
 export async function firestoreBatchUpdateStock(updates: { id: string; stock: number }[]): Promise<void> {
+  if (!db) return;
   const batch = writeBatch(db);
   for (const item of updates) {
     const ref = doc(db, 'products', item.id);
@@ -282,66 +294,79 @@ export async function firestoreBatchUpdateStock(updates: { id: string; stock: nu
 }
 
 export async function firestoreSaveSale(sale: Sale): Promise<void> {
+  if (!db) return;
   const ref = doc(db, 'sales', sale.id);
   await setDoc(ref, cleanForFirestore(sale));
 }
 
 export async function firestoreDeleteSale(saleId: string): Promise<void> {
+  if (!db) return;
   const ref = doc(db, 'sales', saleId);
   await deleteDoc(ref);
 }
 
 export async function firestoreSaveCustomer(customer: Customer): Promise<void> {
+  if (!db) return;
   const ref = doc(db, 'customers', customer.id);
   await setDoc(ref, cleanForFirestore(customer));
 }
 
 export async function firestoreDeleteCustomer(customerId: string): Promise<void> {
+  if (!db) return;
   const ref = doc(db, 'customers', customerId);
   await deleteDoc(ref);
 }
 
 export async function firestoreSaveDebt(debt: DebtAccount): Promise<void> {
+  if (!db) return;
   const ref = doc(db, 'debts', debt.id);
   await setDoc(ref, cleanForFirestore(debt));
 }
 
 export async function firestoreDeleteDebt(debtId: string): Promise<void> {
+  if (!db) return;
   const ref = doc(db, 'debts', debtId);
   await deleteDoc(ref);
 }
 
 export async function firestoreSaveShift(shift: CashShift): Promise<void> {
+  if (!db) return;
   const ref = doc(db, 'shifts', shift.id);
   await setDoc(ref, cleanForFirestore(shift));
 }
 
 export async function firestoreSaveExpense(expense: Expense): Promise<void> {
+  if (!db) return;
   const ref = doc(db, 'expenses', expense.id);
   await setDoc(ref, cleanForFirestore(expense));
 }
 
 export async function firestoreDeleteExpense(expenseId: string): Promise<void> {
+  if (!db) return;
   const ref = doc(db, 'expenses', expenseId);
   await deleteDoc(ref);
 }
 
 export async function firestoreSaveSupplier(supplier: Supplier): Promise<void> {
+  if (!db) return;
   const ref = doc(db, 'suppliers', supplier.id);
   await setDoc(ref, cleanForFirestore(supplier));
 }
 
 export async function firestoreDeleteSupplier(supplierId: string): Promise<void> {
+  if (!db) return;
   const ref = doc(db, 'suppliers', supplierId);
   await deleteDoc(ref);
 }
 
 export async function firestoreSaveSupplierDebt(debt: SupplierDebt): Promise<void> {
+  if (!db) return;
   const ref = doc(db, 'supplierDebts', debt.id);
   await setDoc(ref, cleanForFirestore(debt));
 }
 
 export async function firestoreSaveSettings(settings: { profile?: BusinessProfile; bcvRate?: number; rateDate?: string }): Promise<void> {
+  if (!db) return;
   const ref = doc(db, 'settings', 'global');
   await setDoc(ref, cleanForFirestore({
     ...settings,

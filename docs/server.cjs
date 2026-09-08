@@ -23,14 +23,286 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 
 // server.ts
 var import_express = __toESM(require("express"), 1);
-var import_path = __toESM(require("path"), 1);
+var import_http = __toESM(require("http"), 1);
+var import_path2 = __toESM(require("path"), 1);
 var import_vite = require("vite");
 var import_genai = require("@google/genai");
 var import_dotenv = __toESM(require("dotenv"), 1);
+var import_ws = require("ws");
+
+// server/dbStore.ts
+var import_fs = __toESM(require("fs"), 1);
+var import_path = __toESM(require("path"), 1);
+var DATA_DIR = import_path.default.join(process.cwd(), "data");
+var DB_FILE = import_path.default.join(DATA_DIR, "negofact_db.json");
+var SEED_FILE = import_path.default.join(DATA_DIR, "seedData.json");
+var memoryState = null;
+var saveTimeout = null;
+function loadInitialSeed() {
+  try {
+    if (import_fs.default.existsSync(SEED_FILE)) {
+      const raw = import_fs.default.readFileSync(SEED_FILE, "utf-8");
+      return JSON.parse(raw);
+    }
+  } catch (err) {
+    console.error("Failed to load seedData.json, using fallback:", err);
+  }
+  return {
+    profile: {
+      name: "INVERSIONES LA BENDICI\xD3N 2026, C.A.",
+      commercialName: "Supermercado & Servicios NegoFact",
+      rif: "J-41238910-4",
+      phone: "+58 412-5550199",
+      email: "ventas@negofact.com.ve",
+      address: "Av. Bol\xEDvar cruce con Calle Comercio, Local 14",
+      city: "Valencia",
+      state: "Carabobo",
+      invoicePrefix: "FACT-",
+      controlPrefix: "00-",
+      quotePrefix: "COT-",
+      nextInvoiceSeq: 1042,
+      nextControlSeq: 5820,
+      nextQuoteSeq: 118,
+      pagoMovilBank: "0102 - Banco de Venezuela",
+      pagoMovilPhone: "04125550199",
+      pagoMovilId: "V-20123456",
+      zelleEmail: "pagos.negofact@gmail.com",
+      zelleHolder: "Inversiones La Bendicion LLC",
+      binancePayId: "782910411",
+      defaultThermalSize: "80mm",
+      footerMessage: "\xA1Gracias por su compra! Tasa BCV aplicada seg\xFAn normativa vigente.",
+      enableTax: false,
+      taxRatePercent: 16
+    },
+    users: [],
+    products: [],
+    customers: [],
+    sales: [],
+    quotes: [],
+    shifts: [],
+    debts: [],
+    expenses: [],
+    suppliers: [],
+    supplierDebts: [],
+    lastUpdated: (/* @__PURE__ */ new Date()).toISOString()
+  };
+}
+function initDatabase() {
+  if (memoryState) return memoryState;
+  if (!import_fs.default.existsSync(DATA_DIR)) {
+    import_fs.default.mkdirSync(DATA_DIR, { recursive: true });
+  }
+  if (import_fs.default.existsSync(DB_FILE)) {
+    try {
+      const raw = import_fs.default.readFileSync(DB_FILE, "utf-8");
+      memoryState = JSON.parse(raw);
+      console.log("Central Database loaded from negofact_db.json successfully.");
+      return memoryState;
+    } catch (err) {
+      console.error("Error reading negofact_db.json, recreating from seed:", err);
+    }
+  }
+  memoryState = loadInitialSeed();
+  saveDatabaseImmediately(memoryState);
+  console.log("Central Database initialized with default seed data.");
+  return memoryState;
+}
+function getDatabaseState() {
+  if (!memoryState) {
+    return initDatabase();
+  }
+  return memoryState;
+}
+function saveDatabaseImmediately(state) {
+  try {
+    if (!import_fs.default.existsSync(DATA_DIR)) {
+      import_fs.default.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    const tempFile = `${DB_FILE}.tmp`;
+    import_fs.default.writeFileSync(tempFile, JSON.stringify(state, null, 2), "utf-8");
+    import_fs.default.renameSync(tempFile, DB_FILE);
+  } catch (err) {
+    console.error("Failed to write database file:", err);
+  }
+}
+function scheduleSaveDatabase() {
+  if (saveTimeout) clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(() => {
+    if (memoryState) {
+      saveDatabaseImmediately(memoryState);
+    }
+  }, 100);
+}
+function applyMutation(mutation) {
+  const db = getDatabaseState();
+  const { entity, action, payload } = mutation;
+  db.lastUpdated = (/* @__PURE__ */ new Date()).toISOString();
+  const collection = db[entity];
+  if (action === "REPLACE_ALL" || action === "UPDATE_BATCH") {
+    db[entity] = Array.isArray(payload) ? payload : payload;
+  } else if (action === "CREATE") {
+    if (Array.isArray(collection)) {
+      const existsIndex = collection.findIndex((item) => item && item.id === payload.id);
+      if (existsIndex >= 0) {
+        collection[existsIndex] = payload;
+      } else {
+        collection.unshift(payload);
+      }
+    } else {
+      db[entity] = payload;
+    }
+  } else if (action === "UPDATE") {
+    if (Array.isArray(collection)) {
+      const index = collection.findIndex((item) => item && item.id === payload.id);
+      if (index >= 0) {
+        collection[index] = { ...collection[index], ...payload };
+      } else {
+        collection.push(payload);
+      }
+    } else if (typeof collection === "object" && collection !== null) {
+      db[entity] = { ...collection, ...payload };
+    } else {
+      db[entity] = payload;
+    }
+  } else if (action === "DELETE") {
+    const idToDelete = typeof payload === "string" ? payload : payload?.id;
+    if (Array.isArray(collection) && idToDelete) {
+      db[entity] = collection.filter((item) => item && item.id !== idToDelete);
+    }
+  } else if (action === "UPDATE_STOCK_BATCH") {
+    if (Array.isArray(payload) && Array.isArray(db.products)) {
+      payload.forEach((updateItem) => {
+        const prod = db.products.find((p) => p.id === (updateItem.id || updateItem.productId));
+        if (prod) {
+          if (typeof updateItem.stock === "number") prod.stock = updateItem.stock;
+          if (updateItem.priceUSD !== void 0) prod.priceUSD = updateItem.priceUSD;
+        }
+      });
+    }
+  } else if (action === "SYNC_BATCH") {
+    if (payload && typeof payload === "object") {
+      Object.keys(payload).forEach((key) => {
+        if (Array.isArray(db[key]) && Array.isArray(payload[key])) {
+          db[key] = payload[key];
+        } else if (key === "profile" && payload.profile) {
+          db.profile = payload.profile;
+        }
+      });
+    }
+  }
+  scheduleSaveDatabase();
+  return { success: true, entity, state: db };
+}
+function resetDatabaseToSeed() {
+  memoryState = loadInitialSeed();
+  memoryState.lastUpdated = (/* @__PURE__ */ new Date()).toISOString();
+  saveDatabaseImmediately(memoryState);
+  return memoryState;
+}
+
+// server.ts
 import_dotenv.default.config();
 async function startServer() {
   const app = (0, import_express.default)();
+  const server = import_http.default.createServer(app);
   const PORT = 3e3;
+  initDatabase();
+  const wss = new import_ws.WebSocketServer({ noServer: true });
+  function broadcastClientCount() {
+    const count = wss.clients.size;
+    const msg = JSON.stringify({ type: "CLIENTS_COUNT", count });
+    wss.clients.forEach((client) => {
+      if (client.readyState === import_ws.WebSocket.OPEN) {
+        client.send(msg);
+      }
+    });
+  }
+  function broadcastMutationToClients(mutation, excludeSenderId) {
+    const msg = JSON.stringify({
+      type: "MUTATION_BROADCAST",
+      entity: mutation.entity,
+      action: mutation.action,
+      payload: mutation.payload,
+      senderId: mutation.senderId,
+      timestamp: mutation.timestamp || Date.now()
+    });
+    wss.clients.forEach((client) => {
+      if (client.readyState === import_ws.WebSocket.OPEN) {
+        if (!excludeSenderId || client.deviceId !== excludeSenderId) {
+          client.send(msg);
+        }
+      }
+    });
+  }
+  const heartbeatInterval = setInterval(() => {
+    wss.clients.forEach((ws) => {
+      if (ws.isAlive === false) return ws.terminate();
+      ws.isAlive = false;
+      ws.ping();
+    });
+  }, 25e3);
+  wss.on("close", () => {
+    clearInterval(heartbeatInterval);
+  });
+  wss.on("connection", (ws, req) => {
+    ws.isAlive = true;
+    ws.on("pong", () => {
+      ws.isAlive = true;
+    });
+    const currentState = getDatabaseState();
+    ws.send(JSON.stringify({
+      type: "INIT_STATE",
+      payload: currentState,
+      clientCount: wss.clients.size,
+      serverTime: Date.now()
+    }));
+    broadcastClientCount();
+    ws.on("message", (messageRaw) => {
+      try {
+        const data = JSON.parse(messageRaw.toString());
+        if (data.type === "REGISTER_DEVICE") {
+          ws.deviceId = data.deviceId;
+          ws.deviceName = data.deviceName;
+          return;
+        }
+        if (data.type === "PING") {
+          ws.send(JSON.stringify({ type: "PONG" }));
+          return;
+        }
+        if (data.type === "MUTATION") {
+          const mutation = {
+            entity: data.entity,
+            action: data.action,
+            payload: data.payload,
+            senderId: data.senderId,
+            timestamp: data.timestamp || Date.now()
+          };
+          applyMutation(mutation);
+          broadcastMutationToClients(mutation, data.senderId);
+        }
+      } catch (err) {
+        console.error("Error handling WebSocket message:", err);
+      }
+    });
+    ws.on("close", () => {
+      broadcastClientCount();
+    });
+    ws.on("error", (err) => {
+      console.warn("WebSocket client error:", err?.message);
+    });
+  });
+  server.on("upgrade", (request, socket, head) => {
+    try {
+      const url = new URL(request.url || "", `http://${request.headers.host || "localhost"}`);
+      if (url.pathname === "/api/realtime") {
+        wss.handleUpgrade(request, socket, head, (ws) => {
+          wss.emit("connection", ws, request);
+        });
+      }
+    } catch (e) {
+      socket.destroy();
+    }
+  });
   app.use(import_express.default.json({ limit: "50mb" }));
   app.use(import_express.default.urlencoded({ extended: true, limit: "50mb" }));
   let geminiClient = null;
@@ -180,6 +452,67 @@ Si alg\xFAn dato secundario no est\xE1 visible, d\xE9jalo como cadena vac\xEDa o
       });
     }
   });
+  app.get("/api/sync/state", (req, res) => {
+    try {
+      const state = getDatabaseState();
+      res.json({
+        success: true,
+        data: state,
+        connectedDevices: wss.clients.size,
+        serverTime: Date.now()
+      });
+    } catch (e) {
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+  app.post("/api/sync/mutate", (req, res) => {
+    try {
+      const { entity, action, payload, senderId } = req.body;
+      if (!entity || !action) {
+        return res.status(400).json({ success: false, error: "entity and action are required" });
+      }
+      const mutation = {
+        entity,
+        action,
+        payload,
+        senderId,
+        timestamp: Date.now()
+      };
+      const result = applyMutation(mutation);
+      broadcastMutationToClients(mutation, senderId);
+      res.json({
+        success: true,
+        lastUpdated: result.state.lastUpdated,
+        connectedDevices: wss.clients.size
+      });
+    } catch (e) {
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+  app.post("/api/sync/reset", (req, res) => {
+    try {
+      const newState = resetDatabaseToSeed();
+      const resetMsg = {
+        entity: "all",
+        action: "SYNC_BATCH",
+        payload: newState,
+        senderId: req.body.senderId,
+        timestamp: Date.now()
+      };
+      broadcastMutationToClients(resetMsg);
+      res.json({ success: true, data: newState });
+    } catch (e) {
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+  app.get("/api/sync/info", (req, res) => {
+    res.json({
+      status: "active",
+      engine: "WebSocket + File JSON Store",
+      connectedDevices: wss.clients.size,
+      time: (/* @__PURE__ */ new Date()).toISOString()
+    });
+  });
   if (process.env.NODE_ENV !== "production") {
     const vite = await (0, import_vite.createServer)({
       server: { middlewareMode: true },
@@ -187,14 +520,14 @@ Si alg\xFAn dato secundario no est\xE1 visible, d\xE9jalo como cadena vac\xEDa o
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = import_path.default.join(process.cwd(), "dist");
+    const distPath = import_path2.default.join(process.cwd(), "dist");
     app.use(import_express.default.static(distPath));
     app.get("*", (req, res) => {
-      res.sendFile(import_path.default.join(distPath, "index.html"));
+      res.sendFile(import_path2.default.join(distPath, "index.html"));
     });
   }
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`NegoFact server running on http://0.0.0.0:${PORT}`);
+  server.listen(PORT, "0.0.0.0", () => {
+    console.log(`NegoFact server running with WebSockets on http://0.0.0.0:${PORT}`);
   });
 }
 startServer();

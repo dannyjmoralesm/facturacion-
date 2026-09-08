@@ -28,6 +28,18 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <script>
+      // Garantizar que en GitHub Pages la URL termine con '/' para que las rutas relativas './assets' nunca fallen
+      (function() {
+        if (typeof window !== 'undefined' && window.location.hostname && window.location.hostname.endsWith('github.io')) {
+          var p = window.location.pathname;
+          if (!p.endsWith('/') && !p.includes('.')) {
+            window.location.replace(p + '/' + window.location.search + window.location.hash);
+          }
+        }
+      })();
+    </script>
+
+    <script>
       // Mensaje informativo si se abre con doble clic directo (file:///) en Windows/Mac
       (function() {
         if (typeof window !== 'undefined' && window.location.protocol === 'file:') {

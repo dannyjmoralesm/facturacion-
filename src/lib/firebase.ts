@@ -1,13 +1,19 @@
-import { initializeApp, getApps, getApp } from 'firebase/app';
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
-// Initialize Firebase App instance
-export const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+let appInstance: FirebaseApp | null = null;
+let dbInstance: Firestore | null = null;
 
-// Initialize Firestore with custom database ID provisioned for this applet
-export const db: Firestore = firebaseConfig.firestoreDatabaseId
-  ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
-  : getFirestore(app);
+try {
+  appInstance = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+  dbInstance = firebaseConfig.firestoreDatabaseId
+    ? getFirestore(appInstance, firebaseConfig.firestoreDatabaseId)
+    : getFirestore(appInstance);
+} catch (err) {
+  console.warn('Firebase initialization notice:', err);
+}
 
+export const app = appInstance;
+export const db = dbInstance;
 export { firebaseConfig };

@@ -30,13 +30,15 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
 
       - name: Instalar dependencias
-        run: npm ci || npm install
+        run: npm install --no-audit --no-fund
 
       - name: Compilar aplicación (Vite Build)
-        run: npm run build
+        run: |
+          npm run build
+          cp dist/index.html dist/404.html || true
+          mkdir -p docs && cp -r dist/* docs/ || true
         env:
           NODE_ENV: production
 

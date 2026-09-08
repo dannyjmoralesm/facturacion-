@@ -1,22 +1,75 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="es">
   <head>
-    <meta charset="utf-8">
-    <title>NegoFact POS</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>NegoFact POS Bimoneda Venezuela</title>
+    <meta name="description" content="Sistema de Punto de Venta (POS), Facturación e Inventario bimoneda USD/VES con sincronización en tiempo real multidispositivo vía WebSockets, Tasa BCV automática, Split Payments, Módulo de Finanzas, Libreta de Fiados, Cierre Z e instalador PWA." />
+    <meta property="og:title" content="NegoFact POS Bimoneda Venezuela" />
+    <meta property="og:description" content="Sistema de Punto de Venta (POS), Facturación e Inventario bimoneda USD/VES con sincronización en tiempo real multidispositivo vía WebSockets, Tasa BCV automática, Split Payments, Módulo de Finanzas, Libreta de Fiados, Cierre Z e instalador PWA." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- PWA & Mobile Web App Meta Tags -->
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="NegoFact" />
+    <meta name="application-name" content="NegoFact" />
+    <meta name="msapplication-TileColor" content="#0f172a" />
+    
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+    <link rel="shortcut icon" href="./favicon.ico" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
     <script>
-      // Single Page Apps for GitHub Pages redirection script
-      var pathSegmentsToKeep = 1;
-      var l = window.location;
-      l.replace(
-        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-        l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
-        l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
-        (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
-        l.hash
-      );
+      // Garantizar que en GitHub Pages la URL termine con '/' para que las rutas relativas './assets' nunca fallen
+      (function() {
+        if (typeof window !== 'undefined' && window.location.hostname && window.location.hostname.endsWith('github.io')) {
+          var p = window.location.pathname;
+          if (!p.endsWith('/') && !p.includes('.')) {
+            window.location.replace(p + '/' + window.location.search + window.location.hash);
+          }
+        }
+      })();
     </script>
-  </head>
-  <body>
-    <p>Redirigiendo a NegoFact POS...</p>
+
+    <script>
+      // Mensaje informativo si se abre con doble clic directo (file:///) en Windows/Mac
+      (function() {
+        if (typeof window !== 'undefined' && window.location.protocol === 'file:') {
+          document.addEventListener('DOMContentLoaded', function() {
+            var root = document.getElementById('root');
+            if (root) {
+              root.innerHTML = '<div style="font-family:sans-serif;max-width:600px;margin:50px auto;padding:30px;background:#1e293b;color:#f8fafc;border-radius:16px;text-align:center;box-shadow:0 20px 25px -5px rgba(0,0,0,0.5);border:1px solid #334155;">' +
+                '<h2 style="color:#34d399;margin-top:0;">NegoFact POS - Aviso de Ejecución</h2>' +
+                '<p style="color:#94a3b8;font-size:14px;line-height:1.6;">Los navegadores modernos bloquean la ejecución de aplicaciones React al abrirlas directamente con doble clic (<code style="background:#0f172a;padding:2px 6px;border-radius:4px;color:#f87171;">file:///</code>) por seguridad CORS.</p>' +
+                '<div style="background:#0f172a;padding:16px;border-radius:8px;text-align:left;font-family:monospace;font-size:13px;margin:20px 0;border:1px solid #334155;">' +
+                '# Para ejecutar en tu computadora:<br><span style="color:#38bdf8;">npm install</span><br><span style="color:#38bdf8;">npm run dev</span><br><br>' +
+                '# O para ver la versión compilada:<br><span style="color:#38bdf8;">npx serve docs</span>' +
+                '</div>' +
+                '<p style="color:#cbd5e1;font-size:13px;">Para <b>GitHub Pages</b>, selecciona la carpeta <b>/docs</b> en <b>Settings > Pages</b>.</p>' +
+                '</div>';
+            }
+          });
+        }
+      })();
+    </script>
+    <script type="module" crossorigin src="./assets/index-W_7EwIz0.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-RIVWK0oN.css">
+  <link rel="manifest" href="./manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="./registerSW.js"></script></head>
+  <body class="bg-slate-900 text-slate-100 font-sans antialiased selection:bg-emerald-500 selection:text-white">
+    <noscript>
+      <div style="padding: 2rem; font-family: sans-serif; text-align: center; background: #0f172a; color: white;">
+        <h2>Se requiere JavaScript para ejecutar NegoFact POS</h2>
+        <p>Por favor, active JavaScript en su navegador para visualizar el sistema.</p>
+      </div>
+    </noscript>
+    <div id="root"></div>
   </body>
 </html>

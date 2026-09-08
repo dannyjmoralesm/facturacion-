@@ -1,0 +1,201 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Artículos y productos del inventario",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "sku": { "type": "string" },
+        "barcode": { "type": "string" },
+        "priceUSD": { "type": "number" },
+        "costUSD": { "type": "number" },
+        "stock": { "type": "number" },
+        "minStock": { "type": "number" },
+        "category": { "type": "string" },
+        "unit": { "type": "string" },
+        "taxRate": { "type": "number" },
+        "image": { "type": "string" },
+        "isFavorite": { "type": "boolean" }
+      },
+      "required": ["id", "name", "priceUSD", "stock"]
+    },
+    "Sale": {
+      "title": "Sale",
+      "description": "Ventas y facturas registradas en el POS",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "invoiceNumber": { "type": "string" },
+        "date": { "type": "string" },
+        "items": { "type": "array" },
+        "subtotalUSD": { "type": "number" },
+        "taxUSD": { "type": "number" },
+        "totalUSD": { "type": "number" },
+        "subtotalVES": { "type": "number" },
+        "taxVES": { "type": "number" },
+        "totalVES": { "type": "number" },
+        "rateApplied": { "type": "number" },
+        "payments": { "type": "array" },
+        "change": { "type": "object" },
+        "customer": { "type": "object" },
+        "cashierId": { "type": "string" },
+        "cashierName": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "invoiceNumber", "totalUSD", "date"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Clientes registrados en el sistema",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "docNumber": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "address": { "type": "string" },
+        "creditLimitUSD": { "type": "number" },
+        "totalDebtUSD": { "type": "number" }
+      },
+      "required": ["id", "name", "docNumber"]
+    },
+    "DebtAccount": {
+      "title": "DebtAccount",
+      "description": "Cuentas de crédito y fiados a clientes",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customerId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerDoc": { "type": "string" },
+        "saleId": { "type": "string" },
+        "originalDebtUSD": { "type": "number" },
+        "paidDebtUSD": { "type": "number" },
+        "remainingDebtUSD": { "type": "number" },
+        "date": { "type": "string" },
+        "dueDate": { "type": "string" },
+        "status": { "type": "string" },
+        "items": { "type": "array" },
+        "installments": { "type": "array" }
+      },
+      "required": ["id", "customerId", "originalDebtUSD", "remainingDebtUSD"]
+    },
+    "CashShift": {
+      "title": "CashShift",
+      "description": "Turnos de caja y control Z",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "shiftNumber": { "type": "number" },
+        "openedAt": { "type": "string" },
+        "closedAt": { "type": "string" },
+        "openedBy": { "type": "string" },
+        "closedBy": { "type": "string" },
+        "initialCashUSD": { "type": "number" },
+        "initialCashVES": { "type": "number" },
+        "status": { "type": "string" },
+        "movements": { "type": "array" }
+      },
+      "required": ["id", "shiftNumber", "openedAt", "status"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "Egresos operativos y gastos menores de caja",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "amountUSD": { "type": "number" },
+        "amountVES": { "type": "number" },
+        "paymentMethod": { "type": "string" },
+        "date": { "type": "string" },
+        "createdBy": { "type": "string" },
+        "affectsCashShift": { "type": "boolean" }
+      },
+      "required": ["id", "description", "amountUSD", "date"]
+    },
+    "Supplier": {
+      "title": "Supplier",
+      "description": "Proveedores comerciales",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "rif": { "type": "string" },
+        "phone": { "type": "string" },
+        "totalDebtUSD": { "type": "number" }
+      },
+      "required": ["id", "name", "rif"]
+    },
+    "SupplierDebt": {
+      "title": "SupplierDebt",
+      "description": "Cuentas por pagar a proveedores comerciales",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "supplierId": { "type": "string" },
+        "supplierName": { "type": "string" },
+        "invoiceNumber": { "type": "string" },
+        "originalDebtUSD": { "type": "number" },
+        "paidDebtUSD": { "type": "number" },
+        "remainingDebtUSD": { "type": "number" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "supplierId", "originalDebtUSD", "remainingDebtUSD"]
+    },
+    "SystemSettings": {
+      "title": "SystemSettings",
+      "description": "Configuración del negocio y tasa oficial BCV",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "profile": { "type": "object" },
+        "bcvRate": { "type": "number" },
+        "rateDate": { "type": "string" }
+      },
+      "required": ["id"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Catálogo sincronizado de productos en tiempo real"
+    },
+    "/sales/{saleId}": {
+      "schema": "Sale",
+      "description": "Facturas y registros de ventas sincronizados"
+    },
+    "/customers/{customerId}": {
+      "schema": "Customer",
+      "description": "Clientes y libreta de cuentas"
+    },
+    "/debts/{debtId}": {
+      "schema": "DebtAccount",
+      "description": "Cuentas por cobrar y fiados en tiempo real"
+    },
+    "/shifts/{shiftId}": {
+      "schema": "CashShift",
+      "description": "Turnos de caja y movimientos Z"
+    },
+    "/expenses/{expenseId}": {
+      "schema": "Expense",
+      "description": "Gastos y egresos operativos sincronizados"
+    },
+    "/suppliers/{supplierId}": {
+      "schema": "Supplier",
+      "description": "Proveedores registrados"
+    },
+    "/supplierDebts/{supplierDebtId}": {
+      "schema": "SupplierDebt",
+      "description": "Cuentas por pagar a proveedores"
+    },
+    "/settings/{settingsId}": {
+      "schema": "SystemSettings",
+      "description": "Configuración global de la tienda y tasa de cambio"
+    }
+  }
+}

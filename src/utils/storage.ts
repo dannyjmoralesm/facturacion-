@@ -886,3 +886,10 @@ export function resetToFactoryDefaults(): void {
     console.error('Error during factory reset:', e);
   }
 }
+
+export { 
+  INITIAL_PRODUCTS, 
+  INITIAL_CUSTOMERS, 
+  INITIAL_SUPPLIERS, 
+  DEFAULT_PROFILE 
+};

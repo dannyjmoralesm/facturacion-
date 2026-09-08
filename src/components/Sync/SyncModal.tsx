@@ -177,7 +177,7 @@ export const SyncModal: React.FC<SyncModalProps> = ({
                   {clientCount} {clientCount === 1 ? 'dispositivo' : 'dispositivos'}
                 </div>
                 <div className="text-[10px] text-slate-500">
-                  {status === 'connected' ? 'Sincronizados en vivo por WebSockets' : 'Esperando conexión con el servidor'}
+                  Sincronizados en tiempo real con Google Cloud Firestore
                 </div>
               </div>
             </div>
@@ -338,7 +338,7 @@ export const SyncModal: React.FC<SyncModalProps> = ({
         <div className="bg-slate-950 p-4 border-t border-slate-800 flex items-center justify-between">
           <div className="text-xs text-slate-400 flex items-center gap-1.5">
             <Activity className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Motor: WebSockets Bidireccionales + Almacenamiento Centralizado</span>
+            <span>Motor: Google Cloud Firestore en Tiempo Real + WebSockets</span>
           </div>
           <button
             onClick={onClose}

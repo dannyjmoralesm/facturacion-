@@ -51,6 +51,31 @@ import {
   realtimeSync, 
   ConnectionStatus 
 } from './services/realtimeSync';
+import {
+  ensureFirestoreInitialized,
+  subscribeProducts,
+  subscribeSales,
+  subscribeCustomers,
+  subscribeDebts,
+  subscribeShifts,
+  subscribeExpenses,
+  subscribeSuppliers,
+  subscribeSupplierDebts,
+  subscribeGlobalSettings,
+  firestoreSaveProduct,
+  firestoreDeleteProduct,
+  firestoreBatchUpdateStock,
+  firestoreSaveSale,
+  firestoreSaveCustomer,
+  firestoreDeleteCustomer,
+  firestoreSaveDebt,
+  firestoreSaveShift,
+  firestoreSaveExpense,
+  firestoreDeleteExpense,
+  firestoreSaveSupplier,
+  firestoreSaveSupplierDebt,
+  firestoreSaveSettings
+} from './services/firestoreSync';
 import { 
   OfflineIndicator 
 } from './components/OfflineIndicator';
@@ -394,10 +419,66 @@ export default function App() {
     loadAllData();
     syncRate();
 
-    // Connect to central realtime WebSocket server
+    // 1. Initialize Firestore & seed initial collections if needed
+    ensureFirestoreInitialized().catch(err => console.error('Firestore init error:', err));
+
+    // 2. Realtime subscriptions to Firestore collections
+    const unsubProducts = subscribeProducts((updatedProducts) => {
+      setProducts(updatedProducts);
+      saveProducts(updatedProducts);
+    });
+
+    const unsubSales = subscribeSales((updatedSales) => {
+      setSales(updatedSales);
+      saveSales(updatedSales);
+    });
+
+    const unsubCustomers = subscribeCustomers((updatedCustomers) => {
+      setCustomers(updatedCustomers);
+      saveCustomers(updatedCustomers);
+    });
+
+    const unsubDebts = subscribeDebts((updatedDebts) => {
+      setDebts(updatedDebts);
+      saveDebts(updatedDebts);
+    });
+
+    const unsubShifts = subscribeShifts((updatedShifts) => {
+      setShifts(updatedShifts);
+      saveShifts(updatedShifts);
+      const open = updatedShifts.find((s: any) => s.status === 'open') || null;
+      setActiveShift(open);
+    });
+
+    const unsubExpenses = subscribeExpenses((updatedExpenses) => {
+      setExpenses(updatedExpenses);
+      saveExpenses(updatedExpenses);
+    });
+
+    const unsubSuppliers = subscribeSuppliers((updatedSuppliers) => {
+      setSuppliers(updatedSuppliers);
+      saveSuppliers(updatedSuppliers);
+    });
+
+    const unsubSupplierDebts = subscribeSupplierDebts((updatedSupplierDebts) => {
+      setSupplierDebts(updatedSupplierDebts);
+      saveSupplierDebts(updatedSupplierDebts);
+    });
+
+    const unsubSettings = subscribeGlobalSettings((settings) => {
+      if (settings.profile) {
+        setProfile(settings.profile);
+        saveBusinessProfile(settings.profile);
+      }
+      if (settings.bcvRate) {
+        setBcvRate(settings.bcvRate);
+      }
+    });
+
+    // 3. Central realtime WebSocket connection for device presence
     realtimeSync.connect();
 
-    const unsubscribe = realtimeSync.subscribe({
+    const unsubscribeWs = realtimeSync.subscribe({
       onStatusChange: (status, count) => {
         setSyncStatus(status);
         setSyncConnectedCount(count);
@@ -410,7 +491,18 @@ export default function App() {
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubProducts();
+      unsubSales();
+      unsubCustomers();
+      unsubDebts();
+      unsubShifts();
+      unsubExpenses();
+      unsubSuppliers();
+      unsubSupplierDebts();
+      unsubSettings();
+      unsubscribeWs();
+    };
   }, [loadAllData, syncRate, handleRemoteMutation, handleRemoteFullState]);
 
   // Manual trigger to pull all data from server
@@ -445,6 +537,7 @@ export default function App() {
     setBcvRate(newRate);
     setIsRateOverridden(true);
     localStorage.setItem('negofact_manual_bcv_rate', newRate.toString());
+    firestoreSaveSettings({ bcvRate: newRate, rateDate }).catch(err => console.error('Firestore save rate error:', err));
   };
 
   // User Management Actions
@@ -510,6 +603,7 @@ export default function App() {
     setCustomers(updated);
     saveCustomers(updated);
     realtimeSync.broadcastMutation('customers', 'CREATE', newCust);
+    firestoreSaveCustomer(newCust).catch(err => console.error('Firestore save customer error:', err));
   };
 
   // Checkout flow trigger from POS
@@ -683,6 +777,22 @@ export default function App() {
     }
     realtimeSync.broadcastMutation('profile', 'UPDATE', updatedProfile);
 
+    // Save to Firestore database in real time
+    firestoreSaveSale(newSale).catch(err => console.error('Firestore save sale error:', err));
+    const stockUpdates = updatedProducts.map(p => ({ id: p.id, stock: p.stock }));
+    firestoreBatchUpdateStock(stockUpdates).catch(err => console.error('Firestore batch stock error:', err));
+    if (createdDebt) {
+      firestoreSaveDebt(createdDebt).catch(err => console.error('Firestore save debt error:', err));
+      const targetCustomer = updatedCustomersList.find(c => c.id === createdDebt!.customerId);
+      if (targetCustomer) {
+        firestoreSaveCustomer(targetCustomer).catch(err => console.error('Firestore save customer error:', err));
+      }
+    }
+    if (updatedShiftObj) {
+      firestoreSaveShift(updatedShiftObj).catch(err => console.error('Firestore save shift error:', err));
+    }
+    firestoreSaveSettings({ profile: updatedProfile }).catch(err => console.error('Firestore save settings error:', err));
+
     // 6. Close checkout and show receipt
     setIsCheckoutOpen(false);
     setActiveReceiptSale(newSale);
@@ -748,6 +858,7 @@ export default function App() {
     setProducts(updated);
     saveProducts(updated);
     realtimeSync.broadcastMutation('products', exists ? 'UPDATE' : 'CREATE', prod);
+    firestoreSaveProduct(prod).catch(err => console.error('Firestore save product error:', err));
   };
 
   // Delete Product
@@ -756,6 +867,7 @@ export default function App() {
     setProducts(updated);
     saveProducts(updated);
     realtimeSync.broadcastMutation('products', 'DELETE', prodId);
+    firestoreDeleteProduct(prodId).catch(err => console.error('Firestore delete product error:', err));
   };
 
   // Register Installment on Debt (Libreta de Fiados)
@@ -829,9 +941,15 @@ export default function App() {
     if (affectedDebt) {
       realtimeSync.broadcastMutation('debts', 'UPDATE', affectedDebt);
       realtimeSync.broadcastMutation('customers', 'UPDATE_BATCH', updatedCustList);
+      firestoreSaveDebt(affectedDebt).catch(err => console.error('Firestore save debt error:', err));
+      const targetCustomer = updatedCustList.find(c => c.id === affectedDebt!.customerId);
+      if (targetCustomer) {
+        firestoreSaveCustomer(targetCustomer).catch(err => console.error('Firestore save customer error:', err));
+      }
     }
     if (updatedShiftObj) {
       realtimeSync.broadcastMutation('shifts', 'UPDATE', updatedShiftObj);
+      firestoreSaveShift(updatedShiftObj).catch(err => console.error('Firestore save shift error:', err));
     }
   };
 
@@ -875,6 +993,7 @@ export default function App() {
     setShifts(updated);
     saveShifts(updated);
     realtimeSync.broadcastMutation('shifts', 'CREATE', newShift);
+    firestoreSaveShift(newShift).catch(err => console.error('Firestore save shift error:', err));
   };
 
   // Add Cash Movement (Efectivo entrada/salida)
@@ -917,6 +1036,7 @@ export default function App() {
     setShifts(updatedShifts);
     saveShifts(updatedShifts);
     realtimeSync.broadcastMutation('shifts', 'UPDATE', updatedShift);
+    firestoreSaveShift(updatedShift).catch(err => console.error('Firestore save shift error:', err));
   };
 
   // Close Shift (Arqueo & Cierre Z)
@@ -939,6 +1059,7 @@ export default function App() {
     setShifts(updatedShifts);
     saveShifts(updatedShifts);
     realtimeSync.broadcastMutation('shifts', 'UPDATE', closedShift);
+    firestoreSaveShift(closedShift).catch(err => console.error('Firestore save shift error:', err));
   };
 
   // --- Financial Module Handlers (Finanzas & Tesorería) ---
@@ -949,6 +1070,7 @@ export default function App() {
     setExpenses(updatedExpenses);
     saveExpenses(updatedExpenses);
     realtimeSync.broadcastMutation('expenses', 'CREATE', newExpense);
+    firestoreSaveExpense(newExpense).catch(err => console.error('Firestore save expense error:', err));
 
     // If expense affects cash drawer / active shift, register cash movement in real time
     if (newExpense.affectsCashShift && activeShift) {
@@ -970,6 +1092,7 @@ export default function App() {
     setExpenses(updatedExpenses);
     saveExpenses(updatedExpenses);
     realtimeSync.broadcastMutation('expenses', 'DELETE', expenseId);
+    firestoreDeleteExpense(expenseId).catch(err => console.error('Firestore delete expense error:', err));
   };
 
   // 2. Supplier Debt Handler
@@ -983,6 +1106,7 @@ export default function App() {
       const exists = suppliers.some(s => s.id === newSupplier.id || s.rif === newSupplier.rif);
       if (!exists) {
         updatedSuppliers = [newSupplier, ...suppliers];
+        firestoreSaveSupplier(newSupplier).catch(err => console.error('Firestore save supplier error:', err));
       }
     }
 
@@ -1002,6 +1126,7 @@ export default function App() {
 
     realtimeSync.broadcastMutation('supplierDebts', 'CREATE', newDebt);
     realtimeSync.broadcastMutation('suppliers', 'UPDATE_BATCH', updatedSuppliers);
+    firestoreSaveSupplierDebt(newDebt).catch(err => console.error('Firestore save supplier debt error:', err));
   };
 
   // 3. Supplier Payment / Installment Handler
@@ -1050,6 +1175,7 @@ export default function App() {
     if (affectedDebt) {
       realtimeSync.broadcastMutation('supplierDebts', 'UPDATE', affectedDebt);
       realtimeSync.broadcastMutation('suppliers', 'UPDATE_BATCH', updatedSuppliersList);
+      firestoreSaveSupplierDebt(affectedDebt).catch(err => console.error('Firestore save supplier debt error:', err));
     }
 
     // If installment was paid out of the active shift's cash drawer, deduce it in real time
@@ -1090,6 +1216,11 @@ export default function App() {
 
     realtimeSync.broadcastMutation('debts', 'CREATE', newDebt);
     realtimeSync.broadcastMutation('customers', 'UPDATE_BATCH', updatedCustomers);
+    firestoreSaveDebt(newDebt).catch(err => console.error('Firestore save debt error:', err));
+    const targetCust = updatedCustomers.find(c => c.id === newDebt.customerId);
+    if (targetCust) {
+      firestoreSaveCustomer(targetCust).catch(err => console.error('Firestore save customer error:', err));
+    }
   };
 
   return (
@@ -1270,6 +1401,8 @@ export default function App() {
           onSaveProfile={(prof) => {
             setProfile(prof);
             saveBusinessProfile(prof);
+            realtimeSync.broadcastMutation('profile', 'UPDATE', prof);
+            firestoreSaveSettings({ profile: prof }).catch(err => console.error('Firestore save profile error:', err));
           }}
           onReloadData={loadAllData}
           users={users}

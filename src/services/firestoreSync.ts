@@ -1,6 +1,8 @@
 import { 
   collection, 
   doc, 
+  getDoc,
+  updateDoc,
   setDoc, 
   deleteDoc, 
   onSnapshot, 
@@ -49,46 +51,77 @@ export async function ensureFirestoreInitialized(): Promise<void> {
   isInitializing = true;
 
   try {
-    const productsSnap = await getDocs(collection(db, 'products'));
-    if (productsSnap.empty) {
-      console.log('⚡ Firestore database is empty. Seeding initial catalog and settings...');
-      const batch = writeBatch(db);
+    const settingsRef = doc(db, 'settings', 'global');
+    const settingsSnap = await getDoc(settingsRef);
 
-      // Seed initial products
-      for (const prod of INITIAL_PRODUCTS) {
-        const prodRef = doc(db, 'products', prod.id);
-        batch.set(prodRef, cleanForFirestore(prod));
+    // If global settings already exist, the database has already been initialized previously.
+    // Do NOT re-seed products, customers or suppliers because the user may have deleted or modified them!
+    if (settingsSnap.exists()) {
+      const existingData = settingsSnap.data();
+      // If the stored rate is obsolete (less than 200 Bs, like the old 86.45 default), upgrade it to current live rate
+      if (!existingData?.bcvRate || existingData.bcvRate < 200) {
+        await updateDoc(settingsRef, {
+          bcvRate: 813.74,
+          rateDate: new Date().toISOString().split('T')[0],
+          lastUpdated: new Date().toISOString()
+        }).catch(() => {});
       }
-
-      // Seed initial customers
-      for (const cust of INITIAL_CUSTOMERS) {
-        const custRef = doc(db, 'customers', cust.id);
-        batch.set(custRef, cleanForFirestore(cust));
-      }
-
-      // Seed initial suppliers
-      for (const sup of INITIAL_SUPPLIERS) {
-        const supRef = doc(db, 'suppliers', sup.id);
-        batch.set(supRef, cleanForFirestore(sup));
-      }
-
-      // Seed default settings & profile
-      const settingsRef = doc(db, 'settings', 'global');
-      batch.set(settingsRef, cleanForFirestore({
-        profile: DEFAULT_PROFILE,
-        bcvRate: 86.45,
-        rateDate: new Date().toISOString().split('T')[0],
-        lastUpdated: new Date().toISOString()
-      }));
-
-      await batch.commit();
-      console.log('✅ Firestore seeded successfully with products, customers and settings.');
+      isInitialized = true;
+      return;
     }
+
+    console.log('⚡ Firestore database is clean. Initializing first-time catalog and settings...');
+    const batch = writeBatch(db);
+
+    // Seed initial products
+    for (const prod of INITIAL_PRODUCTS) {
+      const prodRef = doc(db, 'products', prod.id);
+      batch.set(prodRef, cleanForFirestore(prod));
+    }
+
+    // Seed initial customers
+    for (const cust of INITIAL_CUSTOMERS) {
+      const custRef = doc(db, 'customers', cust.id);
+      batch.set(custRef, cleanForFirestore(cust));
+    }
+
+    // Seed initial suppliers
+    for (const sup of INITIAL_SUPPLIERS) {
+      const supRef = doc(db, 'suppliers', sup.id);
+      batch.set(supRef, cleanForFirestore(sup));
+    }
+
+    // Seed default settings & profile
+    batch.set(settingsRef, cleanForFirestore({
+      profile: DEFAULT_PROFILE,
+      bcvRate: 813.74,
+      rateDate: new Date().toISOString().split('T')[0],
+      lastUpdated: new Date().toISOString(),
+      initialized: true
+    }));
+
+    await batch.commit();
+    console.log('✅ Firestore seeded successfully with products, customers and settings.');
     isInitialized = true;
   } catch (err) {
     console.warn('Notice: Firestore seeding check completed or handled:', err);
   } finally {
     isInitializing = false;
+  }
+}
+
+export async function firestoreClearAllProducts(): Promise<void> {
+  if (!db) return;
+  try {
+    const snap = await getDocs(collection(db, 'products'));
+    const batch = writeBatch(db);
+    snap.forEach(d => {
+      batch.delete(d.ref);
+    });
+    await batch.commit();
+    console.log('✅ All products cleared in Firestore.');
+  } catch (e) {
+    console.error('Error clearing products in Firestore:', e);
   }
 }
 
@@ -257,7 +290,12 @@ export function subscribeGlobalSettings(
     doc(db, 'settings', 'global'),
     (docSnap) => {
       if (docSnap.exists()) {
-        onData(docSnap.data() as any);
+        const data = { ...docSnap.data() } as any;
+        if (data.bcvRate && data.bcvRate < 200) {
+          data.bcvRate = 813.74;
+          firestoreSaveSettings({ bcvRate: 813.74 }).catch(() => {});
+        }
+        onData(data);
       }
     },
     (err) => {

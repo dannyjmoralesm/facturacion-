@@ -29,6 +29,7 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
     platform === 'android' ? 'android' : platform === 'ios' ? 'ios' : 'windows'
   );
   const [installStatus, setInstallStatus] = useState<'idle' | 'success' | 'dismissed'>('idle');
+  const isInIframe = typeof window !== 'undefined' && window.self !== window.top;
 
   if (!isOpen) return null;
 
@@ -39,6 +40,46 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
     } else if (outcome === 'dismissed') {
       setInstallStatus('dismissed');
     }
+  };
+
+  const handleOpenFullWindow = () => {
+    window.open(window.location.href, '_blank');
+  };
+
+  const handleDownloadLauncher = () => {
+    const targetUrl = window.location.href;
+    const htmlContent = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>NegoFact POS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { background: #0f172a; color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; }
+    .loader { border: 4px solid #1e293b; border-top: 4px solid #10b981; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 20px; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    a { color: #34d399; text-decoration: none; font-weight: bold; margin-top: 15px; display: inline-block; }
+  </style>
+  <script>
+    window.location.replace("${targetUrl}");
+  </script>
+</head>
+<body>
+  <div class="loader"></div>
+  <h2>Iniciando NegoFact POS...</h2>
+  <p style="color: #94a3b8; font-size: 14px;">Redirigiendo a tu sistema de facturación y punto de venta.</p>
+  <a href="${targetUrl}">Haz clic aquí si no abre automáticamente</a>
+</body>
+</html>`;
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'NegoFact-POS.html';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -110,10 +151,37 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-900">
-              <Sparkles className="w-5 h-5 text-blue-600 shrink-0" />
-              <div className="text-xs text-blue-800">
-                <span className="font-semibold">Instalación guiada:</span> Selecciona tu sistema operativo abajo para seguir las sencillas instrucciones de instalación en segundos.
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-slate-900 border border-slate-700 text-white shadow-md">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400 shrink-0">
+                  <Download className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-slate-100">Descarga e Instalación Directa</p>
+                  <p className="text-xs text-slate-400">Descarga el acceso de escritorio o abre en el navegador nativo para instalar en 1 clic.</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                <button
+                  type="button"
+                  onClick={handleDownloadLauncher}
+                  className="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition shadow flex items-center justify-center gap-1.5 cursor-pointer"
+                  title="Descarga un archivo directo para abrir la app desde tu PC"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Descargar Aplicativo (.html)</span>
+                </button>
+                {isInIframe && (
+                  <button
+                    type="button"
+                    onClick={handleOpenFullWindow}
+                    className="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-600 transition flex items-center justify-center gap-1.5 cursor-pointer"
+                    title="Abre en ventana completa para permitir al navegador mostrar el botón de instalación"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Abrir en Nueva Ventana</span>
+                  </button>
+                )}
               </div>
             </div>
           )}

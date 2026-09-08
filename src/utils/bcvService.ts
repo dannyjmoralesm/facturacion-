@@ -2,8 +2,8 @@ import { ExchangeRateData } from '../types';
 
 const STORAGE_KEY_RATE = 'negofact_bcv_rate_v1';
 
-// Base fallback rate representing representative Venezuelan market rate
-const INITIAL_DEFAULT_RATE = 86.45;
+// Base fallback rate representing representative Venezuelan market rate (Current BCV ~813.74 Bs/USD)
+const INITIAL_DEFAULT_RATE = 813.74;
 
 export function getFallbackRate(): number {
   return INITIAL_DEFAULT_RATE;
@@ -22,7 +22,11 @@ export function getStoredExchangeRate(): ExchangeRateData {
   try {
     const saved = localStorage.getItem(STORAGE_KEY_RATE);
     if (saved) {
-      return JSON.parse(saved);
+      const parsed = JSON.parse(saved) as ExchangeRateData;
+      // If the stored rate is obsolete (e.g. less than 200 Bs, like the old 86.45 placeholder), discard it
+      if (parsed && typeof parsed.rate === 'number' && parsed.rate > 200) {
+        return parsed;
+      }
     }
   } catch (e) {
     console.error('Error reading rate from localStorage:', e);
@@ -35,12 +39,12 @@ export function getStoredExchangeRate(): ExchangeRateData {
     history: [
       {
         date: new Date(Date.now() - 86400000 * 2).toISOString(),
-        rate: 85.90,
+        rate: 812.50,
         source: 'BCV_API'
       },
       {
         date: new Date(Date.now() - 86400000).toISOString(),
-        rate: 86.15,
+        rate: 813.20,
         source: 'BCV_API'
       },
       {
@@ -108,7 +112,7 @@ export async function fetchLiveBCVRate(): Promise<ExchangeRateData> {
     }
 
     // If rate obtained, update
-    if (newRate && !isNaN(newRate) && newRate > 10) {
+    if (newRate && !isNaN(newRate) && newRate > 200) {
       const updatedData: ExchangeRateData = {
         rate: Number(newRate.toFixed(4)),
         lastUpdated: new Date().toISOString(),

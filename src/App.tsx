@@ -64,6 +64,7 @@ import {
   subscribeGlobalSettings,
   firestoreSaveProduct,
   firestoreDeleteProduct,
+  firestoreClearAllProducts,
   firestoreBatchUpdateStock,
   firestoreSaveSale,
   firestoreSaveCustomer,
@@ -180,6 +181,7 @@ export default function App() {
 
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [activeReceiptSale, setActiveReceiptSale] = useState<Sale | null>(null);
+  const [saleCompletedTrigger, setSaleCompletedTrigger] = useState<number>(0);
 
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -240,14 +242,20 @@ export default function App() {
     setActiveShift(openShift);
   }, []);
 
-  // Fetch BCV Rate on boot
+  // Fetch BCV Rate on boot and periodically
   const syncRate = useCallback(async () => {
     setIsRateLoading(true);
     try {
       const data = await fetchBCVRate();
-      setBcvRate(data.rate);
-      setRateDate(data.date);
-      setIsRateOverridden(data.isOverridden || false);
+      if (data && typeof data.rate === 'number' && data.rate > 200) {
+        setBcvRate(data.rate);
+        setRateDate(data.date);
+        setIsRateOverridden(data.isOverridden || false);
+        firestoreSaveSettings({
+          bcvRate: data.rate,
+          rateDate: data.date
+        }).catch(() => {});
+      }
     } catch (err) {
       console.warn('Could not sync BCV rate, using fallback', err);
     } finally {
@@ -470,10 +478,17 @@ export default function App() {
         setProfile(settings.profile);
         saveBusinessProfile(settings.profile);
       }
-      if (settings.bcvRate) {
+      if (settings.bcvRate && settings.bcvRate > 200) {
         setBcvRate(settings.bcvRate);
       }
     });
+
+    // Check rate on window focus & every 20 minutes
+    const handleFocus = () => {
+      syncRate();
+    };
+    window.addEventListener('focus', handleFocus);
+    const rateInterval = setInterval(syncRate, 1000 * 60 * 20);
 
     // 3. Central realtime WebSocket connection for device presence
     realtimeSync.connect();
@@ -492,6 +507,8 @@ export default function App() {
     });
 
     return () => {
+      window.removeEventListener('focus', handleFocus);
+      clearInterval(rateInterval);
       unsubProducts();
       unsubSales();
       unsubCustomers();
@@ -624,9 +641,27 @@ export default function App() {
       totalVES: number;
       creditAmountUSD: number;
     },
-    change?: ChangeDetail
+    change?: ChangeDetail,
+    saleItems?: CartItem[],
+    saleCustomer?: Customer
   ) => {
-    if (!checkoutCustomer || checkoutItems.length === 0) return;
+    const itemsToCharge = (saleItems && saleItems.length > 0) ? saleItems : checkoutItems;
+    if (itemsToCharge.length === 0) {
+      console.warn('No hay artículos para procesar en la venta');
+      return;
+    }
+
+    const finalCustomer: Customer = saleCustomer || checkoutCustomer || customers.find(c => c.id === 'cust-final') || {
+      id: 'cust-final',
+      docType: 'V',
+      docNumber: '00000000',
+      name: 'Consumidor Final',
+      phone: '',
+      email: '',
+      address: 'Mostrador',
+      totalDebtUSD: 0,
+      createdAt: new Date().toISOString()
+    };
 
     const nextInvoiceSeq = profile?.nextInvoiceSeq || 1001;
     const nextControlSeq = profile?.nextControlSeq || 5001;
@@ -639,11 +674,11 @@ export default function App() {
       invoiceNumber,
       controlNumber,
       date: new Date().toISOString(),
-      customerId: checkoutCustomer.id,
-      customerName: checkoutCustomer.name || 'Consumidor Final',
-      customerDoc: `${checkoutCustomer.docType || 'V'}-${checkoutCustomer.docNumber || '00000000'}`,
-      customerPhone: checkoutCustomer.phone || '',
-      items: checkoutItems,
+      customerId: finalCustomer.id,
+      customerName: finalCustomer.name || 'Consumidor Final',
+      customerDoc: `${finalCustomer.docType || 'V'}-${finalCustomer.docNumber || '00000000'}`,
+      customerPhone: finalCustomer.phone || '',
+      items: itemsToCharge,
       subtotalUSD: totals.subtotalUSD,
       discountUSD: totals.discountUSD,
       taxUSD: totals.taxUSD,
@@ -665,7 +700,7 @@ export default function App() {
 
     // 2. Decrement physical inventory stock
     const updatedProducts = products.map(prod => {
-      const purchased = checkoutItems.filter(it => it.productId === prod.id);
+      const purchased = itemsToCharge.filter(it => it.productId === prod.id);
       if (purchased.length > 0 && prod.type === 'physical') {
         const qtyToReduce = purchased.reduce((sum, it) => sum + it.quantity, 0);
         return {
@@ -793,10 +828,12 @@ export default function App() {
     }
     firestoreSaveSettings({ profile: updatedProfile }).catch(err => console.error('Firestore save settings error:', err));
 
-    // 6. Close checkout and show receipt
+    // 6. Close checkout, trigger POS cart reset, and show receipt
     setIsCheckoutOpen(false);
+    setSaleCompletedTrigger(Date.now());
     setActiveReceiptSale(newSale);
     setIsReceiptOpen(true);
+    addSyncEvent(`Venta ${newSale.invoiceNumber} procesada con éxito ($${newSale.totalUSD.toFixed(2)})`, 'sale');
   };
 
   // Convert Quote to Sale
@@ -868,6 +905,17 @@ export default function App() {
     saveProducts(updated);
     realtimeSync.broadcastMutation('products', 'DELETE', prodId);
     firestoreDeleteProduct(prodId).catch(err => console.error('Firestore delete product error:', err));
+  };
+
+  // Clear All Products
+  const handleClearAllProducts = async () => {
+    if (window.confirm('¿Está seguro de que desea eliminar todos los productos del inventario? Esta acción limpiará el catálogo de forma permanente en la nube y en este dispositivo.')) {
+      setProducts([]);
+      saveProducts([]);
+      realtimeSync.broadcastMutation('products', 'UPDATE_STOCK_BATCH', []);
+      await firestoreClearAllProducts();
+      addSyncEvent('Catálogo de productos vaciado por completo', 'product');
+    }
   };
 
   // Register Installment on Debt (Libreta de Fiados)
@@ -1256,7 +1304,7 @@ export default function App() {
       />
 
       {/* Main View Router */}
-      <main className="flex-1 flex flex-col overflow-hidden pb-14 md:pb-0">
+      <main className="flex-1 flex flex-col overflow-hidden pb-16 md:pb-0">
         {currentView === 'pos' && (
           <POSScreen
             products={products}
@@ -1264,6 +1312,7 @@ export default function App() {
             bcvRate={bcvRate}
             profile={profile}
             userRole={userRole}
+            saleCompletedTrigger={saleCompletedTrigger}
             onOpenCheckout={handleOpenCheckout}
             onQuickAddCustomer={handleQuickAddCustomer}
           />
@@ -1293,6 +1342,7 @@ export default function App() {
               userRole={userRole}
               onSaveProduct={handleSaveProduct}
               onDeleteProduct={handleDeleteProduct}
+              onClearAllProducts={handleClearAllProducts}
             />
           </div>
         )}

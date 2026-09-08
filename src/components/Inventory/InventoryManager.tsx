@@ -32,6 +32,7 @@ interface InventoryManagerProps {
   userRole: UserRole;
   onSaveProduct: (product: Product) => void;
   onDeleteProduct: (productId: string) => void;
+  onClearAllProducts?: () => void;
 }
 
 export const InventoryManager: React.FC<InventoryManagerProps> = ({
@@ -40,7 +41,8 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
   profile,
   userRole,
   onSaveProduct,
-  onDeleteProduct
+  onDeleteProduct,
+  onClearAllProducts
 }) => {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -203,6 +205,17 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
             <span>Catálogo WhatsApp</span>
           </button>
 
+          {userRole === 'admin' && products.length > 0 && onClearAllProducts && (
+            <button
+              onClick={onClearAllProducts}
+              className="px-3.5 py-2.5 bg-rose-950/60 hover:bg-rose-900 border border-rose-700/60 text-rose-300 font-semibold rounded-xl text-xs sm:text-sm flex items-center gap-1.5 transition cursor-pointer"
+              title="Eliminar todos los productos y reiniciar inventario en blanco"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>Vaciar Catálogo</span>
+            </button>
+          )}
+
           {userRole === 'admin' && (
             <button
               onClick={handleOpenCreate}
@@ -228,7 +241,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
             <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
               <span>Valor Total del Inventario (A Precio de Venta)</span>
               <span className="bg-emerald-950 text-emerald-300 px-1.5 py-0.5 text-[10px] rounded border border-emerald-700 font-mono">
-                Tasa BCV {(bcvRate || 86.45).toFixed(2)} Bs/$
+                Tasa BCV {(bcvRate || 813.74).toFixed(2)} Bs/$
               </span>
             </div>
             <div className="flex items-baseline gap-2 mt-0.5 flex-wrap">
@@ -252,8 +265,8 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl flex flex-wrap items-center justify-between gap-3">
-        <div className="relative flex-1 min-w-[240px]">
+      <div className="bg-slate-900 border border-slate-800 p-3 sm:p-3.5 rounded-2xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3">
+        <div className="relative flex-1 min-w-0">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
@@ -265,10 +278,10 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
         </div>
 
         {/* Type filters */}
-        <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+        <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs overflow-x-auto scrollbar-none shrink-0">
           <button
             onClick={() => setFilterType('all')}
-            className={`px-3 py-1.5 rounded-lg font-semibold transition ${
+            className={`px-3 py-1.5 rounded-lg font-semibold whitespace-nowrap transition ${
               filterType === 'all' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -276,7 +289,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
           </button>
           <button
             onClick={() => setFilterType('physical')}
-            className={`px-3 py-1.5 rounded-lg font-semibold transition ${
+            className={`px-3 py-1.5 rounded-lg font-semibold whitespace-nowrap transition ${
               filterType === 'physical' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -284,7 +297,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
           </button>
           <button
             onClick={() => setFilterType('service')}
-            className={`px-3 py-1.5 rounded-lg font-semibold transition ${
+            className={`px-3 py-1.5 rounded-lg font-semibold whitespace-nowrap transition ${
               filterType === 'service' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -292,7 +305,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
           </button>
           <button
             onClick={() => setFilterType('low_stock')}
-            className={`px-3 py-1.5 rounded-lg font-semibold transition ${
+            className={`px-3 py-1.5 rounded-lg font-semibold whitespace-nowrap transition ${
               filterType === 'low_stock' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'
             }`}
           >

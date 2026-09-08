@@ -520,10 +520,17 @@ const INITIAL_SHIFT: CashShift = {
 export function getProducts(): Product[] {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
-    if (saved) return JSON.parse(saved);
+    if (saved !== null) {
+      return JSON.parse(saved);
+    }
   } catch (e) {
     console.error('Error loading products:', e);
   }
+  const isInitialized = localStorage.getItem('negofact_initialized_v1');
+  if (isInitialized) {
+    return [];
+  }
+  localStorage.setItem('negofact_initialized_v1', 'true');
   saveProducts(INITIAL_PRODUCTS);
   return INITIAL_PRODUCTS;
 }

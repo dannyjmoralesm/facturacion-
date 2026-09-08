@@ -60,7 +60,7 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({
   currentView,
   onNavigate,
-  bcvRate = 86.45,
+  bcvRate = 813.74,
   rateDate,
   isRateLoading = false,
   onSyncRate,
@@ -82,7 +82,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const { isInstalled, isInstallable, platform } = usePWAInstall();
   const [isEditingRate, setIsEditingRate] = useState(false);
-  const [tempRate, setTempRate] = useState<string>((bcvRate || 86.45).toString());
+  const [tempRate, setTempRate] = useState<string>((bcvRate || 813.74).toString());
   const [isMobileMoreMenuOpen, setIsMobileMoreMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -151,13 +151,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               ) : (
                 <button
                   onClick={() => {
-                    setTempRate((bcvRate || 86.45).toString());
+                    setTempRate((bcvRate || 813.74).toString());
                     setIsEditingRate(true);
                   }}
                   className="group flex items-center gap-1 font-bold text-emerald-400 hover:text-emerald-300 font-mono text-xs sm:text-sm"
                   title="Haga clic para editar tasa manualmente"
                 >
-                  <span>{(bcvRate || 86.45).toFixed(2)} Bs/$</span>
+                  <span>{(bcvRate || 813.74).toFixed(2)} Bs/$</span>
                   <Edit3 className="w-3 h-3 text-slate-500 group-hover:text-emerald-400" />
                 </button>
               )}

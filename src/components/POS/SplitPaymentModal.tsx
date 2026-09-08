@@ -48,7 +48,9 @@ interface SplitPaymentModalProps {
       totalVES: number;
       creditAmountUSD: number;
     },
-    change?: ChangeDetail
+    change?: ChangeDetail,
+    saleItems?: CartItem[],
+    saleCustomer?: Customer
   ) => void;
 }
 
@@ -300,20 +302,90 @@ export const SplitPaymentModal: React.FC<SplitPaymentModalProps> = ({
     setDiscountReason('');
   };
 
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+  const handleQuickPayComplete = (method: PaymentMethodType) => {
+    setIsSubmitting(true);
+    const split: PaymentSplit = {
+      id: `split-quick-${Date.now()}`,
+      method,
+      amountUSD: netTotalUSD,
+      amountVES: netTotalVES,
+      appliedRate: safeRate,
+      reference: reference.trim() || undefined,
+      bank: (method === 'pago_movil' || method === 'punto_venta') ? bank : undefined
+    };
+
+    const totalsPayload = {
+      subtotalUSD: grossSubtotalUSD,
+      discountUSD: discountUSD,
+      taxUSD: 0,
+      totalUSD: netTotalUSD,
+      totalVES: netTotalVES,
+      creditAmountUSD: method === 'credito_fiado' ? netTotalUSD : 0
+    };
+
+    onCompleteSale([split], totalsPayload, undefined, items, customer);
+  };
+
   const handleConfirmSubmit = () => {
-    if (!isCovered) return;
+    setIsSubmitting(true);
+    let finalSplits = [...splits];
+
+    // If no splits were added manually, automatically create a split for the full amount using the current active method
+    if (finalSplits.length === 0) {
+      const rawVal = parseFloat(inputAmount);
+      let splitUSD = netTotalUSD;
+      let splitVES = netTotalVES;
+
+      if (!isNaN(rawVal) && rawVal > 0) {
+        if (inputCurrency === 'USD') {
+          splitUSD = Number(rawVal.toFixed(2));
+          splitVES = Number((splitUSD * safeRate).toFixed(2));
+        } else {
+          splitVES = Number(rawVal.toFixed(2));
+          splitUSD = Number((splitVES / safeRate).toFixed(2));
+        }
+      }
+
+      finalSplits = [{
+        id: `split-${Date.now()}`,
+        method: selectedMethod,
+        amountUSD: splitUSD,
+        amountVES: splitVES,
+        appliedRate: safeRate,
+        reference: reference.trim() || undefined,
+        bank: (selectedMethod === 'pago_movil' || selectedMethod === 'punto_venta') ? bank : undefined
+      }];
+    } else if (remainingUSD > 0.01) {
+      // If there is still a remaining balance, automatically cover it with the selected method
+      finalSplits.push({
+        id: `split-${Date.now()}`,
+        method: selectedMethod,
+        amountUSD: remainingUSD,
+        amountVES: remainingVES,
+        appliedRate: safeRate,
+        reference: reference.trim() || undefined,
+        bank: (selectedMethod === 'pago_movil' || selectedMethod === 'punto_venta') ? bank : undefined
+      });
+    }
 
     let changeDetail: ChangeDetail | undefined = undefined;
-    if (changeUSD > 0 || changeVES > 0) {
+    const finalTotalPaidUSD = finalSplits.reduce((acc, s) => acc + s.amountUSD, 0);
+    const finalDiffUSD = Number((finalTotalPaidUSD - netTotalUSD).toFixed(2));
+    const effectiveChangeUSD = finalDiffUSD > 0 ? finalDiffUSD : 0;
+    const effectiveChangeVES = Number((effectiveChangeUSD * safeRate).toFixed(2));
+
+    if (effectiveChangeUSD > 0 || effectiveChangeVES > 0) {
       changeDetail = {
-        amountUSD: changeUSD,
-        amountVES: changeVES,
+        amountUSD: effectiveChangeUSD,
+        amountVES: effectiveChangeVES,
         method: changeMethod,
         reference: changeMethod === 'pago_movil' ? changePagoMovilRef : undefined
       };
     }
 
-    const creditAmountUSD = splits
+    const creditAmountUSD = finalSplits
       .filter(s => s.method === 'credito_fiado')
       .reduce((sum, s) => sum + s.amountUSD, 0);
 
@@ -326,14 +398,14 @@ export const SplitPaymentModal: React.FC<SplitPaymentModalProps> = ({
       creditAmountUSD
     };
 
-    onCompleteSale(splits, totalsPayload, changeDetail);
+    onCompleteSale(finalSplits, totalsPayload, changeDetail, items, customer);
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto animate-in fade-in">
-      <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[94vh] flex flex-col text-slate-100 overflow-hidden my-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-0 sm:p-4 overflow-y-auto animate-in fade-in">
+      <div className="bg-slate-900 border-0 sm:border sm:border-slate-700 rounded-none sm:rounded-2xl shadow-2xl w-full max-w-5xl h-full sm:h-auto sm:max-h-[94vh] flex flex-col text-slate-100 overflow-hidden my-auto">
         
         {/* Header with Subtotal, Discount & Net Totals */}
         <div className="p-4 sm:p-5 border-b border-slate-800 bg-slate-950 flex flex-wrap items-center justify-between gap-4">
@@ -397,8 +469,64 @@ export const SplitPaymentModal: React.FC<SplitPaymentModalProps> = ({
         {/* Modal Body */}
         <div className="p-4 sm:p-5 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1">
           
-          {/* Left Column: Discount Configurator & Payment Method Form (7 cols) */}
+          {/* Left Column: Quick Pay, Discount Configurator & Payment Method Form (7 cols) */}
           <div className="lg:col-span-7 space-y-4">
+
+            {/* --- SECTION 0: COBRO RÁPIDO EN 1-CLIC (100% DEL MONTO) --- */}
+            <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-emerald-950/40 p-3.5 rounded-xl border border-emerald-500/40 shadow-md">
+              <div className="text-[11px] font-bold text-emerald-300 uppercase tracking-wider mb-2.5 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Cobro Rápido en 1 Clic (100% Facturación):</span>
+                </span>
+                <span className="text-[10px] text-slate-300 font-mono">
+                  {formatUSD(netTotalUSD)} / {formatVES(netTotalVES)}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleQuickPayComplete('cash_usd')}
+                  className="p-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex flex-col items-center justify-center gap-1 shadow-md transition active:scale-95 cursor-pointer border border-emerald-400/30"
+                >
+                  <DollarSign className="w-4 h-4 text-emerald-200" />
+                  <span className="leading-tight">Efectivo USD</span>
+                  <span className="text-[10px] text-emerald-100 font-mono font-normal">{formatUSD(netTotalUSD)}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleQuickPayComplete('pago_movil')}
+                  className="p-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex flex-col items-center justify-center gap-1 shadow-md transition active:scale-95 cursor-pointer border border-cyan-400/30"
+                >
+                  <Smartphone className="w-4 h-4 text-cyan-200" />
+                  <span className="leading-tight">Pago Móvil</span>
+                  <span className="text-[10px] text-cyan-100 font-mono font-normal">{formatVES(netTotalVES)}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleQuickPayComplete('punto_venta')}
+                  className="p-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex flex-col items-center justify-center gap-1 shadow-md transition active:scale-95 cursor-pointer border border-purple-400/30"
+                >
+                  <CreditCard className="w-4 h-4 text-purple-200" />
+                  <span className="leading-tight">Punto de Venta</span>
+                  <span className="text-[10px] text-purple-100 font-mono font-normal">{formatVES(netTotalVES)}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleQuickPayComplete('credito_fiado')}
+                  className="p-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs flex flex-col items-center justify-center gap-1 shadow-md transition active:scale-95 cursor-pointer border border-amber-400/30"
+                >
+                  <BookOpen className="w-4 h-4 text-amber-200" />
+                  <span className="leading-tight">Anotar a Fiado</span>
+                  <span className="text-[10px] text-amber-100 font-mono font-normal truncate max-w-full px-1">
+                    {customer?.name || 'Cliente'}
+                  </span>
+                </button>
+              </div>
+            </div>
             
             {/* --- SECTION 1: DISCOUNT PANEL (PORCENTAJE O MONTO ESPECÍFICO) --- */}
             <div className={`rounded-xl border transition-all ${
@@ -1039,21 +1167,27 @@ export const SplitPaymentModal: React.FC<SplitPaymentModalProps> = ({
               )}
             </div>
 
-            {/* Bottom Actions */}
+            {/* Bottom Actions Desktop */}
             <div className="space-y-2 pt-2 border-t border-slate-800">
               <button
                 id="btn-confirm-sale-finish"
                 type="button"
+                disabled={isSubmitting}
                 onClick={handleConfirmSubmit}
-                disabled={!isCovered}
-                className={`w-full py-3 rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition shadow-lg ${
-                  isCovered 
-                    ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-950 font-black cursor-pointer' 
-                    : 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                }`}
+                className="w-full py-3.5 rounded-xl font-black text-sm sm:text-base flex items-center justify-center gap-2 transition shadow-xl bg-emerald-500 hover:bg-emerald-400 active:scale-[0.99] text-slate-950 shadow-emerald-950/60 cursor-pointer disabled:opacity-50"
               >
-                <span>Finalizar y Emitir Comprobante</span>
-                <ArrowRight className="w-5 h-5" />
+                {isSubmitting ? (
+                  <span>Procesando Venta...</span>
+                ) : (
+                  <>
+                    <span>
+                      {splits.length === 0
+                        ? `Cobrar ${formatUSD(netTotalUSD)} (${selectedMethod === 'cash_usd' ? 'Efectivo USD' : selectedMethod === 'pago_movil' ? 'Pago Móvil' : selectedMethod === 'punto_venta' ? 'Punto de Venta' : selectedMethod === 'zelle' ? 'Zelle' : selectedMethod === 'credito_fiado' ? 'Fiado' : 'Efectivo Bs'})`
+                        : 'Finalizar y Emitir Comprobante'}
+                    </span>
+                    <ArrowRight className="w-5 h-5" />
+                  </>
+                )}
               </button>
 
               <button
@@ -1065,6 +1199,33 @@ export const SplitPaymentModal: React.FC<SplitPaymentModalProps> = ({
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Sticky Mobile Bottom Checkout Bar (Always visible on mobile without scrolling) */}
+        <div className="lg:hidden p-3.5 bg-slate-950 border-t border-slate-800 flex items-center justify-between gap-3 shrink-0 shadow-2xl z-30">
+          <div className="truncate">
+            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total a Cobrar</div>
+            <div className="text-base font-black text-emerald-400 font-mono leading-none mt-0.5">
+              {formatUSD(netTotalUSD)}
+              <span className="text-[11px] text-slate-400 font-normal ml-1">({formatVES(netTotalVES)})</span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            disabled={isSubmitting}
+            onClick={handleConfirmSubmit}
+            className="px-5 py-3 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition shadow-lg bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 shadow-emerald-950/60 cursor-pointer touch-manipulation disabled:opacity-50 shrink-0"
+          >
+            {isSubmitting ? (
+              <span>Procesando...</span>
+            ) : (
+              <>
+                <span>Cobrar</span>
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
+          </button>
         </div>
       </div>
     </div>

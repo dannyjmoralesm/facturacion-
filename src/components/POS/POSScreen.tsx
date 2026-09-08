@@ -36,6 +36,7 @@ interface POSScreenProps {
   bcvRate: number;
   profile: BusinessProfile;
   userRole: UserRole;
+  saleCompletedTrigger?: number;
   onOpenCheckout: (items: CartItem[], customer: Customer) => void;
   onQuickAddCustomer: (customer: Customer) => void;
 }
@@ -46,6 +47,7 @@ export const POSScreen: React.FC<POSScreenProps> = ({
   bcvRate,
   profile,
   userRole,
+  saleCompletedTrigger,
   onOpenCheckout,
   onQuickAddCustomer
 }) => {
@@ -53,6 +55,14 @@ export const POSScreen: React.FC<POSScreenProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [cart, setCart] = useState<CartItem[]>([]);
+
+  // Automatically reset cart and switch to catalog when a sale is completed
+  useEffect(() => {
+    if (saleCompletedTrigger && saleCompletedTrigger > 0) {
+      setCart([]);
+      setMobileTab('catalog');
+    }
+  }, [saleCompletedTrigger]);
   const fallbackCustomer: Customer = {
     id: 'cust-final',
     docType: 'V',
@@ -431,29 +441,39 @@ export const POSScreen: React.FC<POSScreenProps> = ({
 
         {/* MOBILE STICKY FLOATING QUICK-CART BAR (When browsing catalog on phone/tablet) */}
         {cart.length > 0 && mobileTab === 'catalog' && (
-          <div className="lg:hidden absolute bottom-2 left-2 right-2 z-30 p-2.5 bg-slate-950/95 border border-emerald-500/40 backdrop-blur-md rounded-2xl shadow-2xl flex items-center justify-between gap-2 animate-in slide-in-from-bottom-3">
-            <div className="flex items-center gap-2 pl-1">
-              <span className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold font-mono text-sm shrink-0">
+          <div className="lg:hidden absolute bottom-3 left-2.5 right-2.5 z-30 p-2.5 bg-slate-950/95 border border-emerald-500/50 backdrop-blur-md rounded-2xl shadow-2xl flex items-center justify-between gap-2 animate-in slide-in-from-bottom-3">
+            <div className="flex items-center gap-2 pl-1 min-w-0">
+              <span className="w-8 h-8 rounded-xl bg-emerald-500 text-slate-950 flex items-center justify-center font-black font-mono text-xs shrink-0">
                 {cart.reduce((a, b) => a + b.quantity, 0)}
               </span>
-              <div>
-                <div className="text-xs font-bold text-white leading-none">
+              <div className="truncate">
+                <div className="text-xs font-bold text-white leading-none truncate">
                   Total: <span className="text-emerald-400 font-mono">{formatUSD(cartTotalUSD)}</span>
                 </div>
-                <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                <div className="text-[10px] text-slate-400 font-mono mt-0.5 truncate">
                   {formatVES(cartTotalVES)}
                 </div>
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setMobileTab('cart')}
-              className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-emerald-950 transition active:scale-95 touch-manipulation"
-            >
-              <span>Ver Carrito</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => setMobileTab('cart')}
+                className="px-2.5 py-2 bg-slate-800 hover:bg-slate-750 text-slate-200 font-bold rounded-xl text-xs flex items-center gap-1 transition active:scale-95 touch-manipulation border border-slate-700"
+              >
+                <span>Carrito</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onOpenCheckout(cart, selectedCustomer)}
+                className="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1 shadow-md shadow-emerald-950 transition active:scale-95 touch-manipulation"
+              >
+                <span>Cobrar</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -612,7 +632,7 @@ export const POSScreen: React.FC<POSScreenProps> = ({
               </div>
 
               <div className="text-right">
-                <div className="text-[10px] text-slate-400 font-mono">Tasa: {(bcvRate || 86.45).toFixed(2)} Bs/$</div>
+                <div className="text-[10px] text-slate-400 font-mono">Tasa: {(bcvRate || 813.74).toFixed(2)} Bs/$</div>
                 <div className="text-base sm:text-lg font-bold text-slate-100 font-mono leading-none mt-0.5">
                   {formatVES(cartTotalVES)}
                 </div>

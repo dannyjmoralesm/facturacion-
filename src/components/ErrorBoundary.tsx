@@ -34,6 +34,10 @@ export class ErrorBoundary extends React.Component<Props, State> {
     this.setState({ errorInfo });
   }
 
+  private handleRetry = () => {
+    this.setState({ hasError: false, error: null, errorInfo: null });
+  };
+
   private handleReload = () => {
     window.location.reload();
   };
@@ -63,7 +67,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
                 Inconveniente al cargar NegoFact
               </h1>
               <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-                El sistema detectó un error al inicializar la aplicación. No se preocupe, puede recargar la página o restaurar el estado inicial de demostración.
+                El sistema detectó un error al renderizar la pantalla. Puede reintentar, recargar la página o restaurar el estado inicial de demostración.
               </p>
             </div>
 
@@ -76,17 +80,25 @@ export class ErrorBoundary extends React.Component<Props, State> {
             <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
               <button
                 type="button"
-                onClick={this.handleReload}
-                className="flex-1 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-950 transition active:scale-95"
+                onClick={this.handleRetry}
+                className="flex-1 py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-indigo-950 transition active:scale-95 cursor-pointer"
               >
                 <RefreshCw className="w-4 h-4" />
-                <span>Recargar Aplicación</span>
+                <span>Reintentar</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={this.handleReload}
+                className="py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-950 transition active:scale-95 cursor-pointer"
+              >
+                <span>Recargar</span>
               </button>
 
               <button
                 type="button"
                 onClick={this.handleResetStorage}
-                className="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 border border-slate-700 transition"
+                className="py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 border border-slate-700 transition cursor-pointer"
                 title="Limpia datos corruptos de localStorage"
               >
                 <Trash2 className="w-4 h-4 text-rose-400" />

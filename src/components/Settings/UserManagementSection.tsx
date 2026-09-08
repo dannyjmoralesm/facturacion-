@@ -238,7 +238,7 @@ export const UserManagementSection: React.FC<UserManagementSectionProps> = ({
           <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between">
             <div>
               <span className="text-[11px] text-slate-400 font-medium">Total de Usuarios</span>
-              <p className="text-lg font-black text-white">{users.length}</p>
+              <p className="text-lg font-black text-white">{(users?.length || 0)}</p>
             </div>
             <div className="p-2 rounded-lg bg-slate-800 text-slate-300">
               <Users className="w-4 h-4" />
@@ -475,15 +475,15 @@ export const UserManagementSection: React.FC<UserManagementSectionProps> = ({
       <div className="bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden">
         <div className="p-3 bg-slate-900/60 border-b border-slate-800 flex items-center justify-between">
           <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-            Listado de Usuarios Registrados ({users.length})
+            Listado de Usuarios Registrados ({(users?.length || 0)})
           </span>
           <span className="text-[10px] text-slate-400">
-            {users.filter(u => u.active).length} activos
+            {(users || []).filter(u => u.active).length} activos
           </span>
         </div>
 
         <div className="divide-y divide-slate-800/80">
-          {users.map((user) => {
+          {(users || []).map((user) => {
             const isCurrent = user.id === currentUser.id;
             const isAdmin = user.role === 'admin';
 

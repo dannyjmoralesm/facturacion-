@@ -187,7 +187,7 @@ export const CashShiftModal: React.FC<CashShiftModalProps> = ({
                 Abrir Turno de Caja
               </button>
             </form>
-          ) : activeTab === 'summary' ? (
+          ) : activeTab === 'summary' && activeShift ? (
             /* Shift Summary */
             <div className="space-y-4 text-xs">
               {/* Expected Cash in drawer cards */}
@@ -195,20 +195,20 @@ export const CashShiftModal: React.FC<CashShiftModalProps> = ({
                 <div className="bg-emerald-950/30 border border-emerald-700/40 p-3.5 rounded-xl">
                   <span className="text-[10px] text-emerald-400 font-bold uppercase">Efectivo Esperado en Divisas ($)</span>
                   <div className="text-xl font-black text-emerald-300 font-mono mt-1">
-                    {formatUSD(activeShift.expectedCashUSD)}
+                    {formatUSD(activeShift?.expectedCashUSD || 0)}
                   </div>
                   <div className="text-[10px] text-slate-400 mt-1">
-                    Apertura: {formatUSD(activeShift.openingUSD)}
+                    Apertura: {formatUSD(activeShift?.openingUSD || 0)}
                   </div>
                 </div>
 
                 <div className="bg-blue-950/30 border border-blue-700/40 p-3.5 rounded-xl">
                   <span className="text-[10px] text-blue-400 font-bold uppercase">Efectivo Esperado en Bolívares (Bs)</span>
                   <div className="text-xl font-black text-blue-300 font-mono mt-1">
-                    {formatVES(activeShift.expectedCashVES)}
+                    {formatVES(activeShift?.expectedCashVES || 0)}
                   </div>
                   <div className="text-[10px] text-slate-400 mt-1">
-                    Apertura: {formatVES(activeShift.openingVES)}
+                    Apertura: {formatVES(activeShift?.openingVES || 0)}
                   </div>
                 </div>
               </div>
@@ -217,23 +217,23 @@ export const CashShiftModal: React.FC<CashShiftModalProps> = ({
               <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
                 <div className="flex justify-between text-slate-400">
                   <span>Ventas realizadas en este turno:</span>
-                  <span className="font-mono font-bold text-white">{activeShift.salesCount} ventas</span>
+                  <span className="font-mono font-bold text-white">{activeShift?.salesCount || 0} ventas</span>
                 </div>
                 <div className="flex justify-between text-slate-400">
                   <span>Volumen Total Vendido ($):</span>
-                  <span className="font-mono font-bold text-emerald-400">{formatUSD(activeShift.totalSalesUSD)}</span>
+                  <span className="font-mono font-bold text-emerald-400">{formatUSD(activeShift?.totalSalesUSD || 0)}</span>
                 </div>
                 <div className="flex justify-between text-slate-400">
                   <span>Volumen Total Vendido (Bs):</span>
-                  <span className="font-mono font-bold text-slate-200">{formatVES(activeShift.totalSalesVES)}</span>
+                  <span className="font-mono font-bold text-slate-200">{formatVES(activeShift?.totalSalesVES || 0)}</span>
                 </div>
               </div>
 
               {/* Cash Movements log */}
               <div className="space-y-1.5">
-                <span className="text-[11px] text-slate-400 font-semibold block">Movimientos de Caja ({activeShift.movements.length}):</span>
+                <span className="text-[11px] text-slate-400 font-semibold block">Movimientos de Caja ({(activeShift?.movements?.length || 0)}):</span>
                 <div className="max-h-40 overflow-y-auto space-y-1 pr-1">
-                  {activeShift.movements.map(m => (
+                  {(activeShift?.movements || []).map(m => (
                     <div key={m.id} className="bg-slate-950 p-2 rounded-lg border border-slate-850 flex items-center justify-between text-[11px]">
                       <div className="flex items-center gap-1.5">
                         {m.type === 'cash_in' ? (
@@ -343,7 +343,7 @@ export const CashShiftModal: React.FC<CashShiftModalProps> = ({
                     className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg font-mono font-bold text-white text-sm"
                   />
                   <span className="text-[10px] text-slate-500 mt-1 block">
-                    Esperado: {formatUSD(activeShift.expectedCashUSD)}
+                    Esperado: {formatUSD(activeShift?.expectedCashUSD || 0)}
                   </span>
                 </div>
 
@@ -358,7 +358,7 @@ export const CashShiftModal: React.FC<CashShiftModalProps> = ({
                     className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg font-mono font-bold text-white text-sm"
                   />
                   <span className="text-[10px] text-slate-500 mt-1 block">
-                    Esperado: {formatVES(activeShift.expectedCashVES)}
+                    Esperado: {formatVES(activeShift?.expectedCashVES || 0)}
                   </span>
                 </div>
               </div>

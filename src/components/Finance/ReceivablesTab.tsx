@@ -401,7 +401,7 @@ export const ReceivablesTab: React.FC<ReceivablesTabProps> = ({
               <Layers className="w-3.5 h-3.5" />
               <span>Por Facturas</span>
               <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-900 text-slate-300">
-                {debts.length}
+                {(debts?.length || 0)}
               </span>
             </button>
           </div>
@@ -425,7 +425,7 @@ export const ReceivablesTab: React.FC<ReceivablesTabProps> = ({
             { id: 'pending', label: 'Pendientes', count: pendingCount },
             { id: 'overdue', label: 'Vencidas', count: overdueCount },
             { id: 'paid', label: 'Pagadas', count: paidCount },
-            { id: 'all', label: 'Todas', count: debts.length }
+            { id: 'all', label: 'Todas', count: (debts?.length || 0) }
           ].map((tab) => (
             <button
               key={tab.id}

@@ -258,10 +258,10 @@ export const DebtsManager: React.FC<DebtsManagerProps> = ({
                   </div>
 
                   {/* Installments History */}
-                  {debt.installments.length > 0 && (
+                  {debt.installments && debt.installments.length > 0 && (
                     <div className="mb-3 text-[11px] space-y-1 bg-slate-900/60 p-2 rounded-lg border border-slate-800">
-                      <span className="text-slate-400 font-semibold block">Historial de Abonos ({debt.installments.length}):</span>
-                      {debt.installments.map((inst, idx) => (
+                      <span className="text-slate-400 font-semibold block">Historial de Abonos ({debt.installments?.length || 0}):</span>
+                      {(debt.installments || []).map((inst, idx) => (
                         <div key={idx} className="flex justify-between text-slate-300">
                           <span>{formatShortDate(inst.date).split(',')[0]} ({inst.method})</span>
                           <span className="font-mono text-emerald-400">{formatUSD(inst.amountUSD)}</span>

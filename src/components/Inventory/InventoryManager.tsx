@@ -205,7 +205,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
             <span>Catálogo WhatsApp</span>
           </button>
 
-          {userRole === 'admin' && products.length > 0 && onClearAllProducts && (
+          {userRole === 'admin' && (products?.length || 0) > 0 && onClearAllProducts && (
             <button
               onClick={onClearAllProducts}
               className="px-3.5 py-2.5 bg-rose-950/60 hover:bg-rose-900 border border-rose-700/60 text-rose-300 font-semibold rounded-xl text-xs sm:text-sm flex items-center gap-1.5 transition cursor-pointer"
@@ -285,7 +285,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
               filterType === 'all' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
             }`}
           >
-            Todos ({products.length})
+            Todos ({(products?.length || 0)})
           </button>
           <button
             onClick={() => setFilterType('physical')}

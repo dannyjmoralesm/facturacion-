@@ -191,7 +191,7 @@ export const ExpensesTab: React.FC<ExpensesTabProps> = ({
               : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
           }`}
         >
-          Todas las Categorías ({expenses.length})
+          Todas las Categorías ({(expenses?.length || 0)})
         </button>
 
         {Object.entries(CATEGORY_MAP).map(([key, cat]) => {

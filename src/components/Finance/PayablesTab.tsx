@@ -346,12 +346,14 @@ export const PayablesTab: React.FC<PayablesTabProps> = ({
                       <button
                         type="button"
                         onClick={() => {
-                          const lastInst = debt.installments[debt.installments.length - 1] || {
-                            amountUSD: debt.paidDebtUSD,
-                            amountVES: debt.paidDebtUSD * safeRate,
-                            rateApplied: safeRate,
-                            method: 'pago_movil'
-                          };
+                          const lastInst = (debt.installments && debt.installments.length > 0) 
+                            ? debt.installments[debt.installments.length - 1] 
+                            : {
+                                amountUSD: debt.paidDebtUSD,
+                                amountVES: debt.paidDebtUSD * safeRate,
+                                rateApplied: safeRate,
+                                method: 'pago_movil'
+                              };
                           const msg = createWhatsAppSupplierPaymentMessage(debt, lastInst, profile);
                           openWhatsAppLink(debt.supplierPhone, msg);
                         }}

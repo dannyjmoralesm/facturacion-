@@ -288,20 +288,20 @@ export const CustomerStatementModal: React.FC<CustomerStatementModalProps> = ({
             <div className="flex items-center justify-between">
               <h4 className="font-bold text-white text-xs uppercase tracking-wider flex items-center gap-2">
                 <FileText className="w-4 h-4 text-emerald-400" />
-                <span>Historial de Facturas & Fiados ({debts.length})</span>
+                <span>Historial de Facturas & Fiados ({(debts?.length || 0)})</span>
               </h4>
               <span className="text-[11px] text-slate-400">
                 Total acumulado: {formatUSD(totalOriginalUSD)}
               </span>
             </div>
 
-            {debts.length === 0 ? (
+            {(debts?.length || 0) === 0 ? (
               <div className="p-6 bg-slate-950 rounded-xl border border-slate-800 text-center text-xs text-slate-400">
                 Este cliente no tiene cuentas de fiado registradas.
               </div>
             ) : (
               <div className="space-y-2.5">
-                {debts.map((debt) => {
+                {(debts || []).map((debt) => {
                   const isPaid = debt.status === 'paid';
                   const isOverdue = debt.dueDate && new Date(debt.dueDate).getTime() < nowTime && !isPaid;
 

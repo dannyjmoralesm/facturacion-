@@ -251,17 +251,17 @@ export const QuotesManager: React.FC<QuotesManagerProps> = ({
                   {/* Items summary */}
                   <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-850 space-y-1 mb-3 text-xs">
                     <div className="text-[11px] text-slate-400 font-semibold mb-1">
-                      {q.items.length} productos / servicios:
+                      {(q.items?.length || 0)} productos / servicios:
                     </div>
-                    {q.items.slice(0, 3).map((it, idx) => (
+                    {(q.items || []).slice(0, 3).map((it, idx) => (
                       <div key={idx} className="flex justify-between text-slate-300">
                         <span className="truncate mr-2">{it.quantity}x {it.productName}</span>
                         <span className="font-mono text-slate-400">{formatUSD(it.subtotalUSD)}</span>
                       </div>
                     ))}
-                    {q.items.length > 3 && (
+                    {(q.items?.length || 0) > 3 && (
                       <div className="text-[10px] text-slate-500 italic">
-                        +{q.items.length - 3} ítems más...
+                        +{(q.items?.length || 0) - 3} ítems más...
                       </div>
                     )}
                   </div>

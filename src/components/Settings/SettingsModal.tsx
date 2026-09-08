@@ -157,7 +157,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <Users className="w-4 h-4" />
             <span>Usuarios & Roles</span>
             <span className="bg-indigo-500/20 text-indigo-300 text-[10px] px-1.5 py-0.2 rounded-full">
-              {users.length}
+              {(users?.length || 0)}
             </span>
           </button>
 

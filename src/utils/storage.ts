@@ -521,7 +521,13 @@ export function getProducts(): Product[] {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
     if (saved !== null) {
-      return JSON.parse(saved);
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) {
+        return parsed.map((p: any) => ({
+          ...p,
+          variants: Array.isArray(p?.variants) ? p.variants : []
+        }));
+      }
     }
   } catch (e) {
     console.error('Error loading products:', e);
@@ -546,7 +552,10 @@ export function saveProducts(products: Product[]): void {
 export function getCustomers(): Customer[] {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.CUSTOMERS);
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) return parsed;
+    }
   } catch (e) {
     console.error('Error loading customers:', e);
   }
@@ -565,7 +574,16 @@ export function saveCustomers(customers: Customer[]): void {
 export function getSales(): Sale[] {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.SALES);
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) {
+        return parsed.map((s: any) => ({
+          ...s,
+          items: Array.isArray(s?.items) ? s.items : [],
+          payments: Array.isArray(s?.payments) ? s.payments : []
+        }));
+      }
+    }
   } catch (e) {
     console.error('Error loading sales:', e);
   }
@@ -583,7 +601,15 @@ export function saveSales(sales: Sale[]): void {
 export function getQuotes(): Quote[] {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.QUOTES);
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) {
+        return parsed.map((q: any) => ({
+          ...q,
+          items: Array.isArray(q?.items) ? q.items : []
+        }));
+      }
+    }
   } catch (e) {
     console.error('Error loading quotes:', e);
   }
@@ -601,7 +627,15 @@ export function saveQuotes(quotes: Quote[]): void {
 export function getShifts(): CashShift[] {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.SHIFTS);
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) {
+        return parsed.map((s: any) => ({
+          ...s,
+          movements: Array.isArray(s?.movements) ? s.movements : []
+        }));
+      }
+    }
   } catch (e) {
     console.error('Error loading shifts:', e);
   }
@@ -619,14 +653,27 @@ export function saveShifts(shifts: CashShift[]): void {
 
 export function getActiveShift(): CashShift | null {
   const shifts = getShifts();
-  const openShift = shifts.find(s => s.status === 'open');
-  return openShift || null;
+  if (!Array.isArray(shifts)) return null;
+  const openShift = shifts.find(s => s && s.status === 'open');
+  if (!openShift) return null;
+  return {
+    ...openShift,
+    movements: Array.isArray(openShift.movements) ? openShift.movements : []
+  };
 }
 
 export function getDebts(): DebtAccount[] {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.DEBTS);
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) {
+        return parsed.map((d: any) => ({
+          ...d,
+          installments: Array.isArray(d?.installments) ? d.installments : []
+        }));
+      }
+    }
   } catch (e) {
     console.error('Error loading debts:', e);
   }
@@ -761,7 +808,10 @@ export function saveCurrentUser(user: AppUser): void {
 export function getExpenses(): Expense[] {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.EXPENSES);
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) return parsed;
+    }
   } catch (e) {
     console.error('Error loading expenses:', e);
   }
@@ -780,7 +830,10 @@ export function saveExpenses(expenses: Expense[]): void {
 export function getSuppliers(): Supplier[] {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.SUPPLIERS);
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) return parsed;
+    }
   } catch (e) {
     console.error('Error loading suppliers:', e);
   }
@@ -799,7 +852,15 @@ export function saveSuppliers(suppliers: Supplier[]): void {
 export function getSupplierDebts(): SupplierDebt[] {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.SUPPLIER_DEBTS);
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) {
+        return parsed.map((d: any) => ({
+          ...d,
+          installments: Array.isArray(d?.installments) ? d.installments : []
+        }));
+      }
+    }
   } catch (e) {
     console.error('Error loading supplier debts:', e);
   }

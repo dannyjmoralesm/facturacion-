@@ -203,16 +203,16 @@ export const SalesHistory: React.FC<SalesHistoryProps> = ({
                     </td>
 
                     <td className="p-3.5 text-slate-300">
-                      <div>{sale.items.length} productos</div>
+                      <div>{(sale.items?.length || 0)} productos</div>
                       <div className="text-[10px] text-slate-500">
-                        {sale.items.slice(0, 2).map(i => `${i.quantity}x ${i.productName}`).join(', ')}
-                        {sale.items.length > 2 ? '...' : ''}
+                        {(sale.items || []).slice(0, 2).map(i => `${i.quantity}x ${i.productName}`).join(', ')}
+                        {(sale.items?.length || 0) > 2 ? '...' : ''}
                       </div>
                     </td>
 
                     <td className="p-3.5">
                       <div className="flex flex-wrap gap-1">
-                        {sale.payments.map((p, i) => (
+                        {(sale.payments || []).map((p, i) => (
                           <span
                             key={i}
                             className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-slate-800 text-slate-300 border border-slate-700"

@@ -136,10 +136,15 @@ export function subscribeProducts(onData: (products: Product[]) => void, onError
     (snapshot) => {
       const items: Product[] = [];
       snapshot.forEach((d) => {
-        items.push({ ...(d.data() as Product), id: d.id });
+        const raw = d.data() as Product;
+        items.push({ 
+          ...raw, 
+          id: d.id,
+          variants: Array.isArray(raw.variants) ? raw.variants : []
+        });
       });
       // Sort by name
-      items.sort((a, b) => a.name.localeCompare(b.name));
+      items.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
       onData(items);
     },
     (err) => {
@@ -156,7 +161,13 @@ export function subscribeSales(onData: (sales: Sale[]) => void, onError?: (err: 
     (snapshot) => {
       const items: Sale[] = [];
       snapshot.forEach((d) => {
-        items.push({ ...(d.data() as Sale), id: d.id });
+        const raw = d.data() as Sale;
+        items.push({ 
+          ...raw, 
+          id: d.id,
+          items: Array.isArray(raw.items) ? raw.items : [],
+          payments: Array.isArray(raw.payments) ? raw.payments : []
+        });
       });
       // Sort newest first
       items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -194,7 +205,12 @@ export function subscribeDebts(onData: (debts: DebtAccount[]) => void, onError?:
     (snapshot) => {
       const items: DebtAccount[] = [];
       snapshot.forEach((d) => {
-        items.push({ ...(d.data() as DebtAccount), id: d.id });
+        const raw = d.data() as DebtAccount;
+        items.push({ 
+          ...raw, 
+          id: d.id,
+          installments: Array.isArray(raw.installments) ? raw.installments : []
+        });
       });
       items.sort((a, b) => new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime());
       onData(items);
@@ -213,7 +229,12 @@ export function subscribeShifts(onData: (shifts: CashShift[]) => void, onError?:
     (snapshot) => {
       const items: CashShift[] = [];
       snapshot.forEach((d) => {
-        items.push({ ...(d.data() as CashShift), id: d.id });
+        const raw = d.data() as CashShift;
+        items.push({ 
+          ...raw, 
+          id: d.id,
+          movements: Array.isArray(raw.movements) ? raw.movements : []
+        });
       });
       items.sort((a, b) => new Date(b.openedAt).getTime() - new Date(a.openedAt).getTime());
       onData(items);
@@ -269,7 +290,12 @@ export function subscribeSupplierDebts(onData: (debts: SupplierDebt[]) => void, 
     (snapshot) => {
       const items: SupplierDebt[] = [];
       snapshot.forEach((d) => {
-        items.push({ ...(d.data() as SupplierDebt), id: d.id });
+        const raw = d.data() as SupplierDebt;
+        items.push({ 
+          ...raw, 
+          id: d.id,
+          installments: Array.isArray(raw.installments) ? raw.installments : []
+        });
       });
       items.sort((a, b) => new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime());
       onData(items);

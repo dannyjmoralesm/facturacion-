@@ -103,23 +103,24 @@ export const POSScreen: React.FC<POSScreenProps> = ({
   // Extract unique categories
   const categories = useMemo(() => {
     const set = new Set<string>();
-    products.forEach(p => {
-      if (p.category) set.add(p.category);
+    (products || []).forEach(p => {
+      if (p?.category) set.add(p.category);
     });
     return Array.from(set);
   }, [products]);
 
   // Filtered products
   const filteredProducts = useMemo(() => {
-    return products.filter(p => {
+    return (products || []).filter(p => {
+      if (!p) return false;
       const matchesCat = selectedCategory === 'all' || p.category === selectedCategory;
       const q = searchQuery.toLowerCase().trim();
       const matchesSearch = 
         !q ||
-        p.name.toLowerCase().includes(q) ||
-        p.code.toLowerCase().includes(q) ||
+        (p.name && p.name.toLowerCase().includes(q)) ||
+        (p.code && p.code.toLowerCase().includes(q)) ||
         (p.barcode && p.barcode.toLowerCase().includes(q)) ||
-        p.category.toLowerCase().includes(q);
+        (p.category && p.category.toLowerCase().includes(q));
 
       return matchesCat && matchesSearch;
     });
@@ -275,7 +276,7 @@ export const POSScreen: React.FC<POSScreenProps> = ({
             }`}
           >
             <Package className="w-4 h-4" />
-            <span>Catálogo ({products.length})</span>
+            <span>Catálogo ({(products?.length || 0)})</span>
           </button>
 
           <button
@@ -347,7 +348,7 @@ export const POSScreen: React.FC<POSScreenProps> = ({
                 : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white'
             }`}
           >
-            Todos ({products.length})
+            Todos ({(products?.length || 0)})
           </button>
           {categories.map(cat => (
             <button

@@ -70,7 +70,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   if (!isOpen) return null;
 
-  const isAdmin = currentUser.role === 'admin';
+  const isAdmin = (currentUser?.role === 'admin');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

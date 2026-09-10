@@ -106,7 +106,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     }
   };
 
-  const isAdmin = currentUser.role === 'admin' || userRole === 'admin';
+  const isAdmin = (currentUser?.role === 'admin') || userRole === 'admin';
 
   return (
     <>
@@ -237,14 +237,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                   ? 'bg-purple-950/70 text-purple-300 border-purple-700/70 hover:bg-purple-900/60 shadow-xs shadow-purple-950'
                   : 'bg-blue-950/70 text-blue-300 border-blue-700/70 hover:bg-blue-900/60 shadow-xs shadow-blue-950'
               }`}
-              title={`Usuario: ${currentUser.name} (${isAdmin ? 'Administrador' : 'Vendedor'}). Clic para cambiar de usuario.`}
+              title={`Usuario: ${currentUser?.name || 'Usuario'} (${isAdmin ? 'Administrador' : 'Vendedor'}). Clic para cambiar de usuario.`}
             >
               {isAdmin ? (
                 <Crown className="w-3.5 h-3.5 text-purple-400 shrink-0" />
               ) : (
                 <User className="w-3.5 h-3.5 text-blue-400 shrink-0" />
               )}
-              <span className="max-w-[80px] sm:max-w-[120px] truncate text-xs">{currentUser.name || (isAdmin ? 'Admin' : 'Vendedor')}</span>
+              <span className="max-w-[80px] sm:max-w-[120px] truncate text-xs">{currentUser?.name || (isAdmin ? 'Admin' : 'Vendedor')}</span>
             </button>
 
             {/* Mobile More Actions Trigger */}
@@ -574,7 +574,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <User className="w-4 h-4 text-blue-400 shrink-0" />
                 <div>
                   <div className="font-bold text-xs">Cambiar Usuario</div>
-                  <div className="text-[10px] text-slate-500">{currentUser.name}</div>
+                  <div className="text-[10px] text-slate-500">{currentUser?.name || 'Usuario'}</div>
                 </div>
               </button>
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Building2, 
   Smartphone, 
@@ -68,13 +68,26 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [backupMsg, setBackupMsg] = useState<string | null>(null);
   const [isFactoryResetOpen, setIsFactoryResetOpen] = useState(false);
 
+  useEffect(() => {
+    if (profile) {
+      setForm(profile);
+    }
+  }, [profile, isOpen]);
+
   if (!isOpen) return null;
 
   const isAdmin = (currentUser?.role === 'admin');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSaveProfile(form);
+    const cleanName = form.name.trim();
+    const cleanCommercial = form.commercialName?.trim() || cleanName;
+    const updatedForm = {
+      ...form,
+      name: cleanName,
+      commercialName: cleanCommercial
+    };
+    onSaveProfile(updatedForm);
     setSavedSuccess(true);
     setTimeout(() => {
       setSavedSuccess(false);
@@ -248,9 +261,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       type="text"
                       required
                       value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white font-semibold"
+                      onChange={(e) => setForm({ ...form, name: e.target.value, commercialName: e.target.value })}
+                      placeholder="Ej. Inversiones Mi Negocio, C.A."
+                      className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white font-semibold focus:border-emerald-500 transition"
                     />
+                    <p className="text-[11px] text-emerald-400 mt-1">
+                      ✓ Este nombre aparecerá exactamente en el encabezado de los tickets de venta, facturas y comprobantes.
+                    </p>
                   </div>
 
                   <div>

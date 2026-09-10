@@ -3,14 +3,11 @@ import { Sale, Quote, BusinessProfile, DebtAccount, DebtPaymentInstallment } fro
 import { formatUSD, formatVES, formatShortDate } from './bcvService';
 
 export function getCleanCommerceName(profile?: BusinessProfile | null): string {
-  if (!profile) return 'MI COMERCIO';
-  const raw = profile.commercialName || profile.name || 'MI COMERCIO';
-  const cleaned = raw
-    .replace(/supermercado\s*(&|y)?\s*(servicios|víveres|viveres)?/gi, '')
-    .replace(/la bendici[oó]n/gi, '')
-    .replace(/\s*negofact/gi, '')
-    .trim();
-  return cleaned || profile.commercialName || profile.name || 'MI COMERCIO';
+  if (!profile) return 'MI EMPRESA';
+  // La Razón Social / Empresa configurada en el panel de configuración tiene prioridad absoluta
+  const legalName = profile.name?.trim();
+  const commercialName = profile.commercialName?.trim();
+  return legalName || commercialName || 'MI EMPRESA';
 }
 
 export function generateInvoicePDF(sale: Sale, profile: BusinessProfile): jsPDF {

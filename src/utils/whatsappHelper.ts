@@ -4,7 +4,7 @@ import { formatUSD, formatVES, formatShortDate } from './bcvService';
 export function createWhatsAppSaleMessage(sale: Sale, profile: BusinessProfile): string {
   const lines: string[] = [];
 
-  lines.push(`🧾 *${(profile?.commercialName || profile?.name || 'COMPROBANTE DE COMPRA').toUpperCase()}*`);
+  lines.push(`🧾 *${(profile?.name || profile?.commercialName || 'COMPROBANTE DE COMPRA').toUpperCase()}*`);
   if (profile?.rif) lines.push(`🏢 RIF: ${profile.rif}`);
   if (profile?.address) lines.push(`📍 ${profile.address}`);
   lines.push(`--------------------------------`);
@@ -65,7 +65,7 @@ export function createWhatsAppQuoteMessage(quote: Quote, profile: BusinessProfil
   const lines: string[] = [];
 
   lines.push(`📋 *COTIZACIÓN / PRESUPUESTO*`);
-  lines.push(`🏢 *${profile?.commercialName || profile?.name || 'EMPRESA'}* (RIF: ${profile?.rif || 'J-00000000-0'})`);
+  lines.push(`🏢 *${profile?.name || profile?.commercialName || 'EMPRESA'}* (RIF: ${profile?.rif || 'J-00000000-0'})`);
   lines.push(`--------------------------------`);
   lines.push(`🔖 *Presupuesto:* ${quote.quoteNumber}`);
   lines.push(`📅 *Fecha:* ${formatShortDate(quote.date)}`);
@@ -100,7 +100,7 @@ export function createWhatsAppDebtReminder(debt: DebtAccount, currentRate: numbe
   const lines: string[] = [];
 
   lines.push(`🔔 *ESTADO DE CUENTA / RECORDATORIO DE PAGO*`);
-  lines.push(`🏢 *${(profile?.commercialName || profile?.name || 'EMPRESA').toUpperCase()}*`);
+  lines.push(`🏢 *${(profile?.name || profile?.commercialName || 'EMPRESA').toUpperCase()}*`);
   if (profile?.rif) lines.push(`📑 RIF: ${profile.rif}`);
   lines.push(`--------------------------------`);
   lines.push(`Estimado(a) *${debt.customerName}*,`);
@@ -155,7 +155,7 @@ export function createWhatsAppCustomerStatementMessage(
   const lines: string[] = [];
 
   lines.push(`📊 *ESTADO DE CUENTA CONSOLIDADO*`);
-  lines.push(`🏢 *${(profile?.commercialName || profile?.name || 'EMPRESA').toUpperCase()}*`);
+  lines.push(`🏢 *${(profile?.name || profile?.commercialName || 'EMPRESA').toUpperCase()}*`);
   if (profile?.rif) lines.push(`📑 RIF: ${profile.rif}`);
   if (profile?.address) lines.push(`📍 ${profile.address}`);
   lines.push(`--------------------------------`);
@@ -217,7 +217,7 @@ export function createWhatsAppCatalogMessage(products: Product[], bcvRate: numbe
   const lines: string[] = [];
 
   lines.push(`🌟 *CATÁLOGO DE PRODUCTOS & PRECIOS AL DÍA*`);
-  lines.push(`🏢 *${profile?.commercialName || profile?.name || 'EMPRESA'}*`);
+  lines.push(`🏢 *${profile?.name || profile?.commercialName || 'EMPRESA'}*`);
   lines.push(`💵 *Tasa BCV del Día:* ${safeRate.toFixed(2)} Bs/$`);
   lines.push(`--------------------------------`);
 
@@ -247,7 +247,7 @@ export function createWhatsAppSupplierPaymentMessage(
   const lines: string[] = [];
 
   lines.push(`📑 *COMPROBANTE DE PAGO / ABONO A PROVEEDOR*`);
-  lines.push(`🏢 *${profile?.commercialName || profile?.name || 'EMPRESA'}* (RIF: ${profile?.rif || ''})`);
+  lines.push(`🏢 *${profile?.name || profile?.commercialName || 'EMPRESA'}* (RIF: ${profile?.rif || ''})`);
   lines.push(`--------------------------------`);
   lines.push(`Estimados *${debt.supplierName}* (RIF: ${debt.supplierRif}):`);
   lines.push(`Le notificamos que hemos emitido un pago correspondiente a la factura *${debt.invoiceNumber}*.`);

@@ -715,6 +715,10 @@ export function getBusinessProfile(): BusinessProfile {
         parsed.name = 'MI COMERCIO, C.A.';
         needsResave = true;
       }
+      if (parsed.name && parsed.name.trim() !== '' && (!parsed.commercialName || parsed.commercialName === 'Mi Comercio')) {
+        parsed.commercialName = parsed.name.trim();
+        needsResave = true;
+      }
       if (parsed.email && /(negofact|labendicion)/i.test(parsed.email)) {
         parsed.email = '';
         needsResave = true;

@@ -2,14 +2,11 @@ import { Sale, Quote, BusinessProfile, DebtPaymentInstallment, DebtAccount } fro
 import { formatUSD, formatVES, formatShortDate } from './bcvService';
 
 export function getCleanCommerceName(profile?: BusinessProfile | null): string {
-  if (!profile) return 'MI COMERCIO';
-  const raw = profile.commercialName || profile.name || 'MI COMERCIO';
-  const cleaned = raw
-    .replace(/supermercado\s*(&|y)?\s*(servicios|víveres|viveres)?/gi, '')
-    .replace(/la bendici[oó]n/gi, '')
-    .replace(/\s*negofact/gi, '')
-    .trim();
-  return cleaned || profile.commercialName || profile.name || 'MI COMERCIO';
+  if (!profile) return 'MI EMPRESA';
+  // La Razón Social / Empresa configurada en el panel de configuración tiene prioridad absoluta
+  const legalName = profile.name?.trim();
+  const commercialName = profile.commercialName?.trim();
+  return legalName || commercialName || 'MI EMPRESA';
 }
 
 export interface ThermalOptions {
@@ -266,7 +263,8 @@ export function generateQuoteTicketText(
   };
 
   const lines: string[] = [];
-  lines.push(center((profile?.commercialName || profile?.name || 'COTIZACIÓN').toUpperCase()));
+  const companyName = getCleanCommerceName(profile);
+  lines.push(center(companyName.toUpperCase()));
   lines.push(center(`RIF: ${profile?.rif || 'J-00000000-0'}`));
   if (profile?.phone) lines.push(center(`TELF: ${profile.phone}`));
   lines.push(line);
@@ -317,7 +315,7 @@ export function generateDebtPaymentReceiptText(
   };
 
   const lines: string[] = [];
-  lines.push(center(profile.commercialName.toUpperCase()));
+  lines.push(center(getCleanCommerceName(profile).toUpperCase()));
   lines.push(center(`RIF: ${profile.rif}`));
   lines.push(line);
   lines.push(center('RECIBO DE ABONO / PAGO DE CUENTA'));
@@ -363,7 +361,7 @@ export function generateSupplierPaymentReceiptText(
   };
 
   const lines: string[] = [];
-  lines.push(center((profile.commercialName || profile.name).toUpperCase()));
+  lines.push(center(getCleanCommerceName(profile).toUpperCase()));
   lines.push(center(`RIF: ${profile.rif}`));
   lines.push(line);
   lines.push(center('COMPROBANTE DE PAGO A PROVEEDOR'));
@@ -411,7 +409,7 @@ export function generateExpenseReceiptText(
   };
 
   const lines: string[] = [];
-  lines.push(center((profile.commercialName || profile.name).toUpperCase()));
+  lines.push(center(getCleanCommerceName(profile).toUpperCase()));
   lines.push(center(`RIF: ${profile.rif}`));
   lines.push(line);
   lines.push(center('VALE / COMPROBANTE DE EGRESO'));
@@ -490,8 +488,7 @@ export function generateDailySalesReportTicketText(
   };
 
   const lines: string[] = [];
-  lines.push(center((profile.commercialName || profile.name || 'REPORTE DE VENTAS').toUpperCase()));
-  if (profile.name) lines.push(center(profile.name));
+  lines.push(center(getCleanCommerceName(profile).toUpperCase()));
   lines.push(center(`RIF: ${profile.rif || 'J-00000000-0'}`));
   lines.push(line);
   lines.push(center('REPORTE DIARIO DE VENTAS'));
@@ -587,8 +584,7 @@ export function generateMonthlySalesReportTicketText(
   const avgDailyUSD = activeDays > 0 ? totalUSD / activeDays : 0;
 
   const lines: string[] = [];
-  lines.push(center((profile.commercialName || profile.name || 'REPORTE MENSUAL').toUpperCase()));
-  if (profile.name) lines.push(center(profile.name));
+  lines.push(center(getCleanCommerceName(profile).toUpperCase()));
   lines.push(center(`RIF: ${profile.rif || 'J-00000000-0'}`));
   lines.push(line);
   lines.push(center('REPORTE MENSUAL DE VENTAS'));

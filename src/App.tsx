@@ -487,6 +487,9 @@ export default function App() {
         if (p.name && /(la bendici[oó]n|negofact)/i.test(p.name)) {
           p.name = 'MI COMERCIO, C.A.';
         }
+        if (p.name && p.name.trim() !== '' && (!p.commercialName || p.commercialName === 'Mi Comercio')) {
+          p.commercialName = p.name.trim();
+        }
         if (p.email && /(negofact|labendicion)/i.test(p.email)) {
           p.email = '';
         }

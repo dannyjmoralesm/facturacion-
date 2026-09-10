@@ -29,12 +29,22 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <script>
-      // Garantizar que en GitHub Pages la URL termine con '/' para que las rutas relativas './assets' nunca fallen
+      // Detección y redirección inteligente para GitHub Pages
       (function() {
         if (typeof window !== 'undefined' && window.location.hostname && window.location.hostname.endsWith('github.io')) {
           var p = window.location.pathname;
+          
+          // 1. Asegurar barra final si no tiene extensión (evita fallos con rutas relativas ./assets)
           if (!p.endsWith('/') && !p.includes('.')) {
-            window.location.replace(p + '/' + window.location.search + window.location.hash);
+            p = p + '/';
+            window.history.replaceState(null, '', p + window.location.search + window.location.hash);
+          }
+
+          // 2. Si se está ejecutando desde la raíz del repositorio de GitHub Pages (/ (root))
+          // donde se sirve el index.html de desarrollo no compilado, redirigir automáticamente a /docs/
+          if (!window.__IS_DIST_BUILD__ && !p.includes('/docs/')) {
+            var target = p.endsWith('/') ? p + 'docs/' : p + '/docs/';
+            window.location.replace(target + window.location.search + window.location.hash);
           }
         }
       })();
@@ -70,6 +80,6 @@
       </div>
     </noscript>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <script type="module" src="./src/main.tsx"></script>
   </body>
 </html>

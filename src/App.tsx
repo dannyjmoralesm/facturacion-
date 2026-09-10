@@ -476,14 +476,22 @@ export default function App() {
     const unsubSettings = subscribeGlobalSettings((settings) => {
       if (settings.profile) {
         const p: BusinessProfile = { ...settings.profile };
-        if (p.commercialName && /negofact/i.test(p.commercialName)) {
-          p.commercialName = p.commercialName.replace(/\s*negofact/gi, '').trim() || 'Supermercado & Víveres La Bendición';
+        if (p.commercialName && /(negofact|supermercado|servicios|víveres|viveres|la bendición)/i.test(p.commercialName)) {
+          const cleaned = p.commercialName
+            .replace(/supermercado\s*(&|y)?\s*(servicios|víveres|viveres)?/gi, '')
+            .replace(/la bendici[oó]n/gi, '')
+            .replace(/\s*negofact/gi, '')
+            .trim();
+          p.commercialName = cleaned || 'Mi Comercio';
         }
-        if (p.email && /negofact/i.test(p.email)) {
-          p.email = 'ventas@labendicion.com.ve';
+        if (p.name && /(la bendici[oó]n|negofact)/i.test(p.name)) {
+          p.name = 'MI COMERCIO, C.A.';
         }
-        if (p.zelleEmail && /negofact/i.test(p.zelleEmail)) {
-          p.zelleEmail = 'pagos.labendicion@gmail.com';
+        if (p.email && /(negofact|labendicion)/i.test(p.email)) {
+          p.email = '';
+        }
+        if (p.zelleEmail && /(negofact|labendicion)/i.test(p.zelleEmail)) {
+          p.zelleEmail = '';
         }
         if (p.nextInvoiceSeq === undefined || p.nextInvoiceSeq >= 1000) {
           p.nextInvoiceSeq = 0;

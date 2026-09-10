@@ -31,26 +31,26 @@ const STORAGE_KEYS = {
 };
 
 const DEFAULT_PROFILE: BusinessProfile = {
-  name: 'INVERSIONES LA BENDICIÓN 2026, C.A.',
-  commercialName: 'Supermercado & Víveres La Bendición',
-  rif: 'J-41238910-4',
-  phone: '+58 412-5550199',
-  email: 'ventas@labendicion.com.ve',
-  address: 'Av. Bolívar cruce con Calle Comercio, Local 14',
-  city: 'Valencia',
-  state: 'Carabobo',
+  name: 'MI COMERCIO, C.A.',
+  commercialName: 'Mi Comercio',
+  rif: 'J-00000000-0',
+  phone: '',
+  email: '',
+  address: '',
+  city: '',
+  state: '',
   invoicePrefix: 'FACT-',
   controlPrefix: '00-',
   quotePrefix: 'COT-',
   nextInvoiceSeq: 0,
   nextControlSeq: 0,
   nextQuoteSeq: 0,
-  pagoMovilBank: '0102 - Banco de Venezuela',
-  pagoMovilPhone: '04125550199',
-  pagoMovilId: 'V-20123456',
-  zelleEmail: 'pagos.labendicion@gmail.com',
-  zelleHolder: 'Inversiones La Bendicion LLC',
-  binancePayId: '782910411',
+  pagoMovilBank: '',
+  pagoMovilPhone: '',
+  pagoMovilId: '',
+  zelleEmail: '',
+  zelleHolder: '',
+  binancePayId: '',
   defaultThermalSize: '80mm',
   footerMessage: '¡Gracias por su compra! Tasa BCV aplicada según normativa vigente.',
   enableTax: false,
@@ -552,15 +552,20 @@ export function saveProducts(products: Product[]): void {
 export function getCustomers(): Customer[] {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.CUSTOMERS);
-    if (saved) {
+    if (saved !== null) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed)) return parsed;
     }
   } catch (e) {
     console.error('Error loading customers:', e);
   }
-  saveCustomers(INITIAL_CUSTOMERS);
-  return INITIAL_CUSTOMERS;
+  const isInitialized = localStorage.getItem('negofact_initialized_v1');
+  if (isInitialized) {
+    return [];
+  }
+  localStorage.setItem('negofact_initialized_v1', 'true');
+  saveCustomers([]);
+  return [];
 }
 
 export function saveCustomers(customers: Customer[]): void {
@@ -696,17 +701,26 @@ export function getBusinessProfile(): BusinessProfile {
       const parsed = JSON.parse(saved);
       let needsResave = false;
 
-      // Clean legacy NegoFact branding
-      if (parsed.commercialName && /negofact/i.test(parsed.commercialName)) {
-        parsed.commercialName = parsed.commercialName.replace(/\s*negofact/gi, '').trim() || 'Supermercado & Víveres La Bendición';
+      // Clean legacy NegoFact and Supermercado/Servicios branding
+      if (parsed.commercialName && /(negofact|supermercado|servicios|víveres|viveres|la bendición)/i.test(parsed.commercialName)) {
+        const cleaned = parsed.commercialName
+          .replace(/supermercado\s*(&|y)?\s*(servicios|víveres|viveres)?/gi, '')
+          .replace(/la bendici[oó]n/gi, '')
+          .replace(/\s*negofact/gi, '')
+          .trim();
+        parsed.commercialName = cleaned || 'Mi Comercio';
         needsResave = true;
       }
-      if (parsed.email && /negofact/i.test(parsed.email)) {
-        parsed.email = 'ventas@labendicion.com.ve';
+      if (parsed.name && /(la bendici[oó]n|negofact)/i.test(parsed.name)) {
+        parsed.name = 'MI COMERCIO, C.A.';
         needsResave = true;
       }
-      if (parsed.zelleEmail && /negofact/i.test(parsed.zelleEmail)) {
-        parsed.zelleEmail = 'pagos.labendicion@gmail.com';
+      if (parsed.email && /(negofact|labendicion)/i.test(parsed.email)) {
+        parsed.email = '';
+        needsResave = true;
+      }
+      if (parsed.zelleEmail && /(negofact|labendicion)/i.test(parsed.zelleEmail)) {
+        parsed.zelleEmail = '';
         needsResave = true;
       }
 
@@ -871,15 +885,19 @@ export function saveExpenses(expenses: Expense[]): void {
 export function getSuppliers(): Supplier[] {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.SUPPLIERS);
-    if (saved) {
+    if (saved !== null) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed)) return parsed;
     }
   } catch (e) {
     console.error('Error loading suppliers:', e);
   }
-  saveSuppliers(INITIAL_SUPPLIERS);
-  return INITIAL_SUPPLIERS;
+  const isInitialized = localStorage.getItem('negofact_initialized_v1');
+  if (isInitialized) {
+    return [];
+  }
+  saveSuppliers([]);
+  return [];
 }
 
 export function saveSuppliers(suppliers: Supplier[]): void {
@@ -977,20 +995,30 @@ export function resetToFactoryDefaults(): void {
     }
     keysToRemove.forEach(k => localStorage.removeItem(k));
 
-    // Reset with fresh initial data
+    // Reset all app values strictly to 0 as requested by the user:
+    // inventories = 0, customers = 0, suppliers = 0, billing numbers = 0
+    localStorage.setItem('negofact_initialized_v1', 'true');
     saveUsers(INITIAL_USERS);
     saveCurrentUser(INITIAL_USERS[0]);
     saveUserRole('admin');
-    saveProducts(INITIAL_PRODUCTS);
-    saveCustomers(INITIAL_CUSTOMERS);
-    saveSales([]);
-    saveQuotes([]);
-    saveShifts([]);
-    saveDebts([]);
-    saveExpenses([]);
-    saveSuppliers(INITIAL_SUPPLIERS);
-    saveSupplierDebts([]);
-    saveBusinessProfile(DEFAULT_PROFILE);
+    saveProducts([]);         // Inventarios a 0
+    saveCustomers([]);        // Clientes a 0
+    saveSales([]);            // Ventas a 0
+    saveQuotes([]);           // Cotizaciones a 0
+    saveShifts([]);           // Turnos de caja a 0
+    saveDebts([]);            // Libreta de fiados a 0
+    saveExpenses([]);         // Gastos a 0
+    saveSuppliers([]);        // Proveedores a 0
+    saveSupplierDebts([]);    // Deudas a 0
+    saveBusinessProfile({
+      ...DEFAULT_PROFILE,
+      commercialName: 'Mi Comercio',
+      name: 'MI COMERCIO, C.A.',
+      rif: 'J-00000000-0',
+      nextInvoiceSeq: 0,
+      nextControlSeq: 0,
+      nextQuoteSeq: 0
+    });
   } catch (e) {
     console.error('Error during factory reset:', e);
   }

@@ -17,7 +17,7 @@ import {
   generateSaleTicketText, 
   printViaBluetooth 
 } from '../../utils/thermalPrinter';
-import { downloadSalePDF } from '../../utils/pdfGenerator';
+import { downloadSalePDF, downloadSaleTicketPDF } from '../../utils/pdfGenerator';
 import { createWhatsAppSaleMessage, openWhatsAppLink } from '../../utils/whatsappHelper';
 import { formatUSD, formatVES } from '../../utils/bcvService';
 
@@ -102,6 +102,10 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
 
   const handleDownloadPDF = () => {
     downloadSalePDF(sale, profile);
+  };
+
+  const handleDownloadTicketPDF = () => {
+    downloadSaleTicketPDF(sale, profile, thermalWidth);
   };
 
   return (
@@ -263,6 +267,16 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
             >
               <Bluetooth className="w-4 h-4 text-blue-400" />
               <span>Impresora Bluetooth</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDownloadTicketPDF}
+              className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-xl text-xs flex items-center gap-1.5 border border-slate-700 transition"
+              title="Descargar Ticket en PDF térmico listo para imprimir o enviar"
+            >
+              <FileText className="w-4 h-4 text-sky-400" />
+              <span>Ticket PDF</span>
             </button>
 
             <button

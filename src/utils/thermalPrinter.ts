@@ -1,6 +1,17 @@
 import { Sale, Quote, BusinessProfile, DebtPaymentInstallment, DebtAccount } from '../types';
 import { formatUSD, formatVES, formatShortDate } from './bcvService';
 
+export function getCleanCommerceName(profile?: BusinessProfile | null): string {
+  if (!profile) return 'MI COMERCIO';
+  const raw = profile.commercialName || profile.name || 'MI COMERCIO';
+  const cleaned = raw
+    .replace(/supermercado\s*(&|y)?\s*(servicios|víveres|viveres)?/gi, '')
+    .replace(/la bendici[oó]n/gi, '')
+    .replace(/\s*negofact/gi, '')
+    .trim();
+  return cleaned || profile.commercialName || profile.name || 'MI COMERCIO';
+}
+
 export interface ThermalOptions {
   width: '58mm' | '80mm';
   cutPaper?: boolean;
@@ -33,9 +44,9 @@ export function generateSaleTicketText(
 
   const lines: string[] = [];
 
-  // Header
-  lines.push(center((profile?.commercialName || profile?.name || 'COMPROBANTE FISCAL').toUpperCase()));
-  if (profile?.name) lines.push(center(profile.name));
+  // Header: solo el nombre del comercio (sin "supermercado y servicios" ni nombres duplicados)
+  const commerceName = getCleanCommerceName(profile);
+  lines.push(center(commerceName.toUpperCase()));
   lines.push(center(`RIF: ${profile?.rif || 'J-00000000-0'}`));
   if (profile?.address) lines.push(center(profile.address));
   if (profile?.phone) lines.push(center(`TELF: ${profile.phone}`));

@@ -13,11 +13,12 @@ import {
   Eye,
   Filter,
   BarChart3,
-  Clock
+  Clock,
+  FileText
 } from 'lucide-react';
 import { Sale, BusinessProfile, UserRole } from '../../types';
 import { formatUSD, formatVES, formatShortDate } from '../../utils/bcvService';
-import { downloadSalePDF } from '../../utils/pdfGenerator';
+import { downloadSalePDF, downloadSaleTicketPDF } from '../../utils/pdfGenerator';
 import { createWhatsAppSaleMessage, openWhatsAppLink } from '../../utils/whatsappHelper';
 import { SalesReportModal } from './SalesReportModal';
 import { Lock, Crown } from 'lucide-react';
@@ -242,6 +243,13 @@ export const SalesHistory: React.FC<SalesHistoryProps> = ({
                           title="Ver y Reimprimir Comprobante Térmico"
                         >
                           <Printer className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => downloadSaleTicketPDF(sale, profile)}
+                          className="p-1.5 bg-slate-800 hover:bg-sky-600 text-slate-300 hover:text-white rounded-lg transition"
+                          title="Descargar Ticket PDF Térmico"
+                        >
+                          <FileText className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => downloadSalePDF(sale, profile)}

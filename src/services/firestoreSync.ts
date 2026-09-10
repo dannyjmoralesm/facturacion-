@@ -437,3 +437,50 @@ export async function firestoreSaveSettings(settings: { profile?: BusinessProfil
     lastUpdated: new Date().toISOString()
   }), { merge: true });
 }
+
+export async function firestoreResetAllData(): Promise<void> {
+  if (!db) return;
+  try {
+    const collectionsToClear = [
+      'products',
+      'customers',
+      'sales',
+      'debts',
+      'shifts',
+      'expenses',
+      'suppliers',
+      'supplierDebts'
+    ];
+
+    for (const colName of collectionsToClear) {
+      const colRef = collection(db, colName);
+      const snap = await getDocs(colRef);
+      if (!snap.empty) {
+        const batch = writeBatch(db);
+        snap.docs.forEach((d) => batch.delete(d.ref));
+        await batch.commit();
+      }
+    }
+
+    // Reset settings in Firestore to clean business profile and 0 sequences
+    const settingsRef = doc(db, 'settings', 'global');
+    await setDoc(settingsRef, cleanForFirestore({
+      profile: {
+        ...DEFAULT_PROFILE,
+        commercialName: 'Mi Comercio',
+        name: 'MI COMERCIO, C.A.',
+        rif: 'J-00000000-0',
+        nextInvoiceSeq: 0,
+        nextControlSeq: 0,
+        nextQuoteSeq: 0
+      },
+      bcvRate: 813.74,
+      rateDate: new Date().toISOString().split('T')[0],
+      lastUpdated: new Date().toISOString(),
+      initialized: true
+    }));
+    console.log('✅ Firestore reset completed: all collections cleared to 0.');
+  } catch (err) {
+    console.warn('Firestore reset notice:', err);
+  }
+}

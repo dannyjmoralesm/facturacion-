@@ -2,6 +2,17 @@ import { jsPDF } from 'jspdf';
 import { Sale, Quote, BusinessProfile, DebtAccount, DebtPaymentInstallment } from '../types';
 import { formatUSD, formatVES, formatShortDate } from './bcvService';
 
+export function getCleanCommerceName(profile?: BusinessProfile | null): string {
+  if (!profile) return 'MI COMERCIO';
+  const raw = profile.commercialName || profile.name || 'MI COMERCIO';
+  const cleaned = raw
+    .replace(/supermercado\s*(&|y)?\s*(servicios|víveres|viveres)?/gi, '')
+    .replace(/la bendici[oó]n/gi, '')
+    .replace(/\s*negofact/gi, '')
+    .trim();
+  return cleaned || profile.commercialName || profile.name || 'MI COMERCIO';
+}
+
 export function generateInvoicePDF(sale: Sale, profile: BusinessProfile): jsPDF {
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -17,15 +28,21 @@ export function generateInvoicePDF(sale: Sale, profile: BusinessProfile): jsPDF 
   doc.setFillColor(15, 23, 42); // slate-900
   doc.roundedRect(margin, y, pageWidth - margin * 2, 28, 3, 3, 'F');
 
+  const commerceName = getCleanCommerceName(profile);
+
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
-  doc.text(profile?.commercialName || profile?.name || 'COMPROBANTE FISCAL', margin + 6, y + 9);
+  doc.text(commerceName, margin + 6, y + 9);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
-  doc.text(`${profile?.name || 'Empresa Comercial C.A.'}  |  RIF: ${profile?.rif || 'J-00000000-0'}`, margin + 6, y + 16);
-  doc.text(`${profile?.address || 'Venezuela'}, ${profile?.city || ''}, Edo. ${profile?.state || ''} | Tel: ${profile?.phone || ''}`, margin + 6, y + 22);
+  doc.text(`RIF: ${profile?.rif || 'J-00000000-0'}`, margin + 6, y + 16);
+  if (profile?.address || profile?.phone) {
+    const locParts = [profile?.address, profile?.city, profile?.state].filter(Boolean).join(', ');
+    const phonePart = profile?.phone ? ` | Tel: ${profile.phone}` : '';
+    doc.text(`${locParts}${phonePart}`, margin + 6, y + 22);
+  }
 
   // Invoice Meta Box (Right aligned inside banner or badge)
   doc.setFont('helvetica', 'bold');
@@ -244,15 +261,21 @@ export function generateQuotePDF(quote: Quote, profile: BusinessProfile): jsPDF 
   doc.setFillColor(30, 41, 59); // slate-800
   doc.roundedRect(margin, y, pageWidth - margin * 2, 28, 3, 3, 'F');
 
+  const quoteCommerceName = getCleanCommerceName(profile);
+
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
-  doc.text(profile?.commercialName || profile?.name || 'COTIZACIÓN', margin + 6, y + 9);
+  doc.text(quoteCommerceName, margin + 6, y + 9);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
-  doc.text(`${profile?.name || 'Empresa Comercial C.A.'} | RIF: ${profile?.rif || 'J-00000000-0'}`, margin + 6, y + 16);
-  doc.text(`${profile?.address || 'Venezuela'} | Tel: ${profile?.phone || ''}`, margin + 6, y + 22);
+  doc.text(`RIF: ${profile?.rif || 'J-00000000-0'}`, margin + 6, y + 16);
+  if (profile?.address || profile?.phone) {
+    const locParts = [profile?.address, profile?.city, profile?.state].filter(Boolean).join(', ');
+    const phonePart = profile?.phone ? ` | Tel: ${profile.phone}` : '';
+    doc.text(`${locParts}${phonePart}`, margin + 6, y + 22);
+  }
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
@@ -359,6 +382,243 @@ export function downloadSalePDF(sale: Sale, profile: BusinessProfile): void {
   doc.save(`${sale.invoiceNumber}_Factura.pdf`);
 }
 
+export function generateSaleTicketPDF(
+  sale: Sale, 
+  profile: BusinessProfile, 
+  options: { width?: '58mm' | '80mm' } = { width: '80mm' }
+): jsPDF {
+  const is58 = options.width === '58mm';
+  const rollWidth = is58 ? 58 : 80;
+  const margin = 4;
+  const printableWidth = rollWidth - margin * 2;
+
+  // Altura dinámica según ítems y pagos
+  const estimatedHeight = Math.max(
+    130,
+    30 +
+    25 +
+    18 +
+    (sale.items.length * 10) +
+    28 +
+    (sale.payments.length * 5) +
+    25 +
+    15
+  );
+
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: [rollWidth, Math.ceil(estimatedHeight)]
+  });
+
+  let y = 6;
+  const commerceName = getCleanCommerceName(profile);
+
+  // 1. Encabezado limpio: solo el nombre del comercio
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(is58 ? 10 : 12);
+  doc.setTextColor(15, 23, 42);
+  doc.text(commerceName.toUpperCase(), rollWidth / 2, y, { align: 'center' });
+  y += 4.5;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(71, 85, 105);
+  doc.text(`RIF: ${profile?.rif || 'J-00000000-0'}`, rollWidth / 2, y, { align: 'center' });
+  y += 4;
+
+  if (profile?.address) {
+    const splitAddress = doc.splitTextToSize(profile.address, printableWidth);
+    doc.text(splitAddress, rollWidth / 2, y, { align: 'center' });
+    y += (splitAddress.length * 3.5);
+  }
+  if (profile?.phone) {
+    doc.text(`Telf: ${profile.phone}`, rollWidth / 2, y, { align: 'center' });
+    y += 4;
+  }
+
+  // Línea divisoria
+  doc.setDrawColor(203, 213, 225);
+  doc.line(margin, y, rollWidth - margin, y);
+  y += 4;
+
+  // 2. Metadatos de la venta
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.5);
+  doc.setTextColor(15, 23, 42);
+  doc.text('COMPROBANTE DE VENTA', rollWidth / 2, y, { align: 'center' });
+  y += 4.5;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(51, 65, 85);
+  doc.text(`Factura: ${sale.invoiceNumber}`, margin, y);
+  doc.text(`Control: ${sale.controlNumber}`, rollWidth - margin, y, { align: 'right' });
+  y += 4;
+
+  doc.text(`Fecha: ${formatShortDate(sale.date)}`, margin, y);
+  doc.text(`Cajero: ${sale.cashierName}`, rollWidth - margin, y, { align: 'right' });
+  y += 4;
+
+  const saleRate = (sale.bcvRate && sale.bcvRate > 0) ? sale.bcvRate : 813.74;
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(16, 185, 129);
+  doc.text(`Tasa Oficial BCV: ${saleRate.toFixed(2)} Bs/$`, rollWidth / 2, y, { align: 'center' });
+  y += 4.5;
+
+  // Línea divisoria
+  doc.setDrawColor(203, 213, 225);
+  doc.line(margin, y, rollWidth - margin, y);
+  y += 4;
+
+  // 3. Datos del cliente
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(30, 41, 59);
+  doc.text(`Cliente: ${sale.customerName}`, margin, y);
+  y += 3.8;
+  doc.text(`C.I./RIF: ${sale.customerDoc}`, margin, y);
+  if (sale.customerPhone) {
+    doc.text(`Telf: ${sale.customerPhone}`, rollWidth - margin, y, { align: 'right' });
+  }
+  y += 4.5;
+
+  // Línea divisoria
+  doc.line(margin, y, rollWidth - margin, y);
+  y += 4;
+
+  // 4. Encabezado de productos
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.setTextColor(71, 85, 105);
+  doc.text('CANT / DESCRIPCIÓN', margin, y);
+  doc.text('TOTAL', rollWidth - margin, y, { align: 'right' });
+  y += 3.5;
+  doc.line(margin, y, rollWidth - margin, y);
+  y += 3.5;
+
+  // 5. Filas de productos
+  sale.items.forEach(item => {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(15, 23, 42);
+    
+    const qtyText = `${item.quantity} ${item.unit}`;
+    const displayName = item.variantName ? `${item.productName} (${item.variantName})` : item.productName;
+    const itemMaxLen = is58 ? 20 : 28;
+    const truncated = displayName.length > itemMaxLen ? displayName.substring(0, itemMaxLen - 2) + '..' : displayName;
+    
+    doc.text(`${qtyText} ${truncated}`, margin, y);
+    doc.text(formatUSD(item.subtotalUSD), rollWidth - margin, y, { align: 'right' });
+    y += 3.5;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(100, 116, 139);
+    doc.text(`P.U: ${formatUSD(item.priceUSD)} | ${formatVES(item.priceVES)}`, margin + 2, y);
+    doc.text(formatVES(item.subtotalVES), rollWidth - margin, y, { align: 'right' });
+    y += 4;
+  });
+
+  // Línea divisoria
+  doc.setDrawColor(203, 213, 225);
+  doc.line(margin, y, rollWidth - margin, y);
+  y += 4;
+
+  // 6. Totales
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(71, 85, 105);
+  doc.text('Subtotal:', margin, y);
+  doc.text(formatUSD(sale.subtotalUSD), rollWidth - margin, y, { align: 'right' });
+  y += 3.8;
+
+  if (sale.discountUSD > 0) {
+    doc.setTextColor(220, 38, 38);
+    doc.text('Descuento:', margin, y);
+    doc.text(`-${formatUSD(sale.discountUSD)}`, rollWidth - margin, y, { align: 'right' });
+    y += 3.8;
+  }
+
+  // Caja de Total
+  doc.setFillColor(15, 23, 42);
+  doc.roundedRect(margin, y, printableWidth, 11, 1.5, 1.5, 'F');
+  
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(255, 255, 255);
+  doc.text('TOTAL A PAGAR:', margin + 3, y + 4.8);
+  doc.setFontSize(10.5);
+  doc.setTextColor(52, 211, 153);
+  doc.text(formatUSD(sale.totalUSD), rollWidth - margin - 3, y + 4.8, { align: 'right' });
+  
+  doc.setFontSize(7.5);
+  doc.setTextColor(203, 213, 225);
+  doc.text(`Equivalente: ${formatVES(sale.totalVES)}`, margin + 3, y + 9.2);
+  y += 14;
+
+  // 7. Desglose de pagos
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.setTextColor(71, 85, 105);
+  doc.text('DESGLOSE DE PAGO:', margin, y);
+  y += 3.5;
+
+  const methodNameMap: Record<string, string> = {
+    cash_usd: 'Efectivo $',
+    cash_ves: 'Efectivo Bs',
+    pago_movil: 'Pago Móvil',
+    punto_venta: 'Punto de Venta',
+    zelle: 'Zelle',
+    binance_pay: 'Binance Pay',
+    credito_fiado: 'Crédito / Fiado'
+  };
+
+  sale.payments.forEach(p => {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(30, 41, 59);
+    const label = methodNameMap[p.method] || p.method;
+    const ref = p.reference ? ` (${p.reference})` : '';
+    doc.text(`• ${label}${ref}:`, margin, y);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${formatUSD(p.amountUSD)} / ${formatVES(p.amountVES)}`, rollWidth - margin, y, { align: 'right' });
+    y += 3.5;
+  });
+
+  if (sale.change && (sale.change.amountUSD > 0 || sale.change.amountVES > 0)) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.setTextColor(220, 38, 38);
+    doc.text('• Cambio / Vuelto:', margin, y);
+    doc.text(`${formatUSD(sale.change.amountUSD)} / ${formatVES(sale.change.amountVES)}`, rollWidth - margin, y, { align: 'right' });
+    y += 3.8;
+  }
+
+  y += 2;
+  doc.setDrawColor(203, 213, 225);
+  doc.line(margin, y, rollWidth - margin, y);
+  y += 4;
+
+  // 8. Mensaje de pie de página
+  doc.setFont('helvetica', 'italic');
+  doc.setFontSize(7);
+  doc.setTextColor(100, 116, 139);
+  const footSplit = doc.splitTextToSize(profile.footerMessage || '¡Gracias por su compra!', printableWidth);
+  doc.text(footSplit, rollWidth / 2, y, { align: 'center' });
+
+  return doc;
+}
+
+export function downloadSaleTicketPDF(
+  sale: Sale, 
+  profile: BusinessProfile, 
+  width: '58mm' | '80mm' = '80mm'
+): void {
+  const doc = generateSaleTicketPDF(sale, profile, { width });
+  doc.save(`${sale.invoiceNumber}_Ticket.pdf`);
+}
+
 export function downloadQuotePDF(quote: Quote, profile: BusinessProfile): void {
   const doc = generateQuotePDF(quote, profile);
   doc.save(`${quote.quoteNumber}_Cotizacion.pdf`);
@@ -390,15 +650,19 @@ export function generateDailySalesReportPDF(
   doc.setFillColor(15, 23, 42); // slate-900
   doc.roundedRect(margin, y, pageWidth - margin * 2, 26, 3, 3, 'F');
 
+  const reportCommerceName = getCleanCommerceName(profile);
+
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(15);
-  doc.text(profile?.commercialName || profile?.name || 'REPORTE DE VENTAS', margin + 6, y + 8);
+  doc.text(reportCommerceName, margin + 6, y + 8);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
-  doc.text(`${profile?.name || 'Empresa Comercial C.A.'} | RIF: ${profile?.rif || 'J-00000000-0'} | Tel: ${profile?.phone || ''}`, margin + 6, y + 15);
-  doc.text(`${profile?.address || 'Venezuela'}`, margin + 6, y + 21);
+  doc.text(`RIF: ${profile?.rif || 'J-00000000-0'} | Tel: ${profile?.phone || ''}`, margin + 6, y + 15);
+  if (profile?.address) {
+    doc.text(profile.address, margin + 6, y + 21);
+  }
 
   // Title Box
   doc.setFont('helvetica', 'bold');
@@ -597,15 +861,19 @@ export function generateMonthlySalesReportPDF(
   doc.setFillColor(15, 23, 42);
   doc.roundedRect(margin, y, pageWidth - margin * 2, 26, 3, 3, 'F');
 
+  const monthlyCommerceName = getCleanCommerceName(profile);
+
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(15);
-  doc.text(profile?.commercialName || profile?.name || 'REPORTE MENSUAL', margin + 6, y + 8);
+  doc.text(monthlyCommerceName, margin + 6, y + 8);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
-  doc.text(`${profile?.name || 'Empresa Comercial C.A.'} | RIF: ${profile?.rif || 'J-00000000-0'} | Tel: ${profile?.phone || ''}`, margin + 6, y + 15);
-  doc.text(`${profile?.address || 'Venezuela'}`, margin + 6, y + 21);
+  doc.text(`RIF: ${profile?.rif || 'J-00000000-0'} | Tel: ${profile?.phone || ''}`, margin + 6, y + 15);
+  if (profile?.address) {
+    doc.text(profile.address, margin + 6, y + 21);
+  }
 
   // Title Box
   doc.setFont('helvetica', 'bold');

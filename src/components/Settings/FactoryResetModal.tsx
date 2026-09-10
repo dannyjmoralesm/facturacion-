@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { AppUser } from '../../types';
 import { resetToFactoryDefaults, exportAllDataAsJSON } from '../../utils/storage';
+import { firestoreResetAllData } from '../../services/firestoreSync';
 
 interface FactoryResetModalProps {
   isOpen: boolean;
@@ -97,8 +98,14 @@ export const FactoryResetModal: React.FC<FactoryResetModalProps> = ({
     setIsProcessing(true);
 
     try {
-      // Execute storage reset
+      // 1. Reset local storage values to 0
       resetToFactoryDefaults();
+
+      // 2. Reset cloud Firestore collections to 0 if connected
+      firestoreResetAllData().catch((err) => {
+        console.warn('Notice: Firestore reset completed or not active:', err);
+      });
+
       setIsProcessing(false);
       setIsSuccess(true);
 
@@ -177,11 +184,12 @@ export const FactoryResetModal: React.FC<FactoryResetModalProps> = ({
                   <span>¿Qué sucederá al restablecer la aplicación?</span>
                 </div>
                 <ul className="text-[11px] text-slate-300 space-y-1 list-disc list-inside leading-relaxed pl-1">
-                  <li>Se borrarán <strong>todas las ventas</strong>, cotizaciones y facturas registradas.</li>
-                  <li>Se borrarán los <strong>turnos de caja</strong> y reportes de cierre Z.</li>
-                  <li>Se limpiará la <strong>libreta de fiados</strong> y cuentas por pagar a proveedores.</li>
-                  <li>Se limpiarán los <strong>gastos operacionales</strong> registrados.</li>
-                  <li>El catálogo de productos y usuarios volverá a la <strong>configuración de fábrica inicial</strong>.</li>
+                  <li>El <strong>inventario y stock</strong> volverá a 0 (catálogo de productos vacío).</li>
+                  <li>Los <strong>clientes y proveedores</strong> se restablecerán a 0.</li>
+                  <li>Los <strong>números de facturación, control y cotización</strong> volverán a 0 (FAC-000000).</li>
+                  <li>Se borrarán <strong>todas las ventas</strong>, cotizaciones y facturas emitidas.</li>
+                  <li>Se limpiarán los <strong>turnos de caja</strong>, reportes Z, <strong>libreta de fiados</strong> y gastos.</li>
+                  <li>El encabezado del comercio se restablecerá sin textos genéricos ni de demostración.</li>
                 </ul>
               </div>
 

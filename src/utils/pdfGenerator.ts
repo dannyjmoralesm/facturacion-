@@ -20,11 +20,11 @@ export function generateInvoicePDF(sale: Sale, profile: BusinessProfile): jsPDF 
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
-  doc.text(profile?.commercialName || profile?.name || 'NEGOFACT', margin + 6, y + 9);
+  doc.text(profile?.commercialName || profile?.name || 'COMPROBANTE FISCAL', margin + 6, y + 9);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
-  doc.text(`${profile?.name || 'NegoFact C.A.'}  |  RIF: ${profile?.rif || 'J-00000000-0'}`, margin + 6, y + 16);
+  doc.text(`${profile?.name || 'Empresa Comercial C.A.'}  |  RIF: ${profile?.rif || 'J-00000000-0'}`, margin + 6, y + 16);
   doc.text(`${profile?.address || 'Venezuela'}, ${profile?.city || ''}, Edo. ${profile?.state || ''} | Tel: ${profile?.phone || ''}`, margin + 6, y + 22);
 
   // Invoice Meta Box (Right aligned inside banner or badge)
@@ -224,7 +224,7 @@ export function generateInvoicePDF(sale: Sale, profile: BusinessProfile): jsPDF 
   doc.setFontSize(7.5);
   doc.setTextColor(100, 116, 139);
   doc.text(profile.footerMessage, pageWidth / 2, y, { align: 'center' });
-  doc.text(`Documento generado por NegoFact POS Bimoneda - ${profile.commercialName}`, pageWidth / 2, y + 4, { align: 'center' });
+  doc.text(`Comprobante fiscal emitido por ${profile.commercialName || profile.name || 'la empresa'}`, pageWidth / 2, y + 4, { align: 'center' });
 
   return doc;
 }
@@ -247,11 +247,11 @@ export function generateQuotePDF(quote: Quote, profile: BusinessProfile): jsPDF 
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
-  doc.text(profile?.commercialName || profile?.name || 'NEGOFACT', margin + 6, y + 9);
+  doc.text(profile?.commercialName || profile?.name || 'COTIZACIÓN', margin + 6, y + 9);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
-  doc.text(`${profile?.name || 'NegoFact C.A.'} | RIF: ${profile?.rif || 'J-00000000-0'}`, margin + 6, y + 16);
+  doc.text(`${profile?.name || 'Empresa Comercial C.A.'} | RIF: ${profile?.rif || 'J-00000000-0'}`, margin + 6, y + 16);
   doc.text(`${profile?.address || 'Venezuela'} | Tel: ${profile?.phone || ''}`, margin + 6, y + 22);
 
   doc.setFont('helvetica', 'bold');
@@ -356,12 +356,12 @@ export function generateQuotePDF(quote: Quote, profile: BusinessProfile): jsPDF 
 
 export function downloadSalePDF(sale: Sale, profile: BusinessProfile): void {
   const doc = generateInvoicePDF(sale, profile);
-  doc.save(`${sale.invoiceNumber}_Factura_NegoFact.pdf`);
+  doc.save(`${sale.invoiceNumber}_Factura.pdf`);
 }
 
 export function downloadQuotePDF(quote: Quote, profile: BusinessProfile): void {
   const doc = generateQuotePDF(quote, profile);
-  doc.save(`${quote.quoteNumber}_Cotizacion_NegoFact.pdf`);
+  doc.save(`${quote.quoteNumber}_Cotizacion.pdf`);
 }
 
 export function generateDailySalesReportPDF(
@@ -393,11 +393,11 @@ export function generateDailySalesReportPDF(
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(15);
-  doc.text(profile?.commercialName || profile?.name || 'NEGOFACT', margin + 6, y + 8);
+  doc.text(profile?.commercialName || profile?.name || 'REPORTE DE VENTAS', margin + 6, y + 8);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
-  doc.text(`${profile?.name || 'NegoFact C.A.'} | RIF: ${profile?.rif || 'J-00000000-0'} | Tel: ${profile?.phone || ''}`, margin + 6, y + 15);
+  doc.text(`${profile?.name || 'Empresa Comercial C.A.'} | RIF: ${profile?.rif || 'J-00000000-0'} | Tel: ${profile?.phone || ''}`, margin + 6, y + 15);
   doc.text(`${profile?.address || 'Venezuela'}`, margin + 6, y + 21);
 
   // Title Box
@@ -600,11 +600,11 @@ export function generateMonthlySalesReportPDF(
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(15);
-  doc.text(profile?.commercialName || profile?.name || 'NEGOFACT', margin + 6, y + 8);
+  doc.text(profile?.commercialName || profile?.name || 'REPORTE MENSUAL', margin + 6, y + 8);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
-  doc.text(`${profile?.name || 'NegoFact C.A.'} | RIF: ${profile?.rif || 'J-00000000-0'} | Tel: ${profile?.phone || ''}`, margin + 6, y + 15);
+  doc.text(`${profile?.name || 'Empresa Comercial C.A.'} | RIF: ${profile?.rif || 'J-00000000-0'} | Tel: ${profile?.phone || ''}`, margin + 6, y + 15);
   doc.text(`${profile?.address || 'Venezuela'}`, margin + 6, y + 21);
 
   // Title Box

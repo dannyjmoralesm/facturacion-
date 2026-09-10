@@ -32,23 +32,23 @@ const STORAGE_KEYS = {
 
 const DEFAULT_PROFILE: BusinessProfile = {
   name: 'INVERSIONES LA BENDICIÓN 2026, C.A.',
-  commercialName: 'Supermercado & Servicios NegoFact',
+  commercialName: 'Supermercado & Víveres La Bendición',
   rif: 'J-41238910-4',
   phone: '+58 412-5550199',
-  email: 'ventas@negofact.com.ve',
+  email: 'ventas@labendicion.com.ve',
   address: 'Av. Bolívar cruce con Calle Comercio, Local 14',
   city: 'Valencia',
   state: 'Carabobo',
   invoicePrefix: 'FACT-',
   controlPrefix: '00-',
   quotePrefix: 'COT-',
-  nextInvoiceSeq: 1042,
-  nextControlSeq: 5820,
-  nextQuoteSeq: 118,
+  nextInvoiceSeq: 0,
+  nextControlSeq: 0,
+  nextQuoteSeq: 0,
   pagoMovilBank: '0102 - Banco de Venezuela',
   pagoMovilPhone: '04125550199',
   pagoMovilId: 'V-20123456',
-  zelleEmail: 'pagos.negofact@gmail.com',
+  zelleEmail: 'pagos.labendicion@gmail.com',
   zelleHolder: 'Inversiones La Bendicion LLC',
   binancePayId: '782910411',
   defaultThermalSize: '80mm',
@@ -268,7 +268,7 @@ const INITIAL_DEBTS: DebtAccount[] = [
     customerDoc: 'V-19876543',
     customerPhone: '04141234567',
     saleId: 'sale-init-1',
-    invoiceNumber: 'FACT-1038',
+    invoiceNumber: 'FACT-000001',
     originalDebtUSD: 28.50,
     paidDebtUSD: 10.00,
     remainingDebtUSD: 18.50,
@@ -298,7 +298,7 @@ const INITIAL_DEBTS: DebtAccount[] = [
     customerDoc: 'V-14321098',
     customerPhone: '04129876543',
     saleId: 'sale-init-2',
-    invoiceNumber: 'FACT-1040',
+    invoiceNumber: 'FACT-000002',
     originalDebtUSD: 42.00,
     paidDebtUSD: 0,
     remainingDebtUSD: 42.00,
@@ -692,7 +692,48 @@ export function saveDebts(debts: DebtAccount[]): void {
 export function getBusinessProfile(): BusinessProfile {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.PROFILE);
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      let needsResave = false;
+
+      // Clean legacy NegoFact branding
+      if (parsed.commercialName && /negofact/i.test(parsed.commercialName)) {
+        parsed.commercialName = parsed.commercialName.replace(/\s*negofact/gi, '').trim() || 'Supermercado & Víveres La Bendición';
+        needsResave = true;
+      }
+      if (parsed.email && /negofact/i.test(parsed.email)) {
+        parsed.email = 'ventas@labendicion.com.ve';
+        needsResave = true;
+      }
+      if (parsed.zelleEmail && /negofact/i.test(parsed.zelleEmail)) {
+        parsed.zelleEmail = 'pagos.labendicion@gmail.com';
+        needsResave = true;
+      }
+
+      // Reset invoice sequence if unset or from legacy starting sequence >= 1000
+      if (parsed.nextInvoiceSeq === undefined || parsed.nextInvoiceSeq >= 1000) {
+        parsed.nextInvoiceSeq = 0;
+        needsResave = true;
+      }
+      if (parsed.nextControlSeq === undefined || parsed.nextControlSeq >= 5000) {
+        parsed.nextControlSeq = 0;
+        needsResave = true;
+      }
+      if (parsed.nextQuoteSeq === undefined || parsed.nextQuoteSeq >= 100) {
+        parsed.nextQuoteSeq = 0;
+        needsResave = true;
+      }
+
+      const mergedProfile: BusinessProfile = {
+        ...DEFAULT_PROFILE,
+        ...parsed
+      };
+
+      if (needsResave) {
+        saveBusinessProfile(mergedProfile);
+      }
+      return mergedProfile;
+    }
   } catch (e) {
     console.error('Error loading profile:', e);
   }

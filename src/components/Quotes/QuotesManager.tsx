@@ -114,9 +114,10 @@ export const QuotesManager: React.FC<QuotesManagerProps> = ({
     const now = new Date();
     const validUntil = new Date(now.getTime() + validDays * 86400000);
 
+    const quoteSeq = (profile.nextQuoteSeq !== undefined && !isNaN(Number(profile.nextQuoteSeq))) ? Number(profile.nextQuoteSeq) : 0;
     const newQuote: Quote = {
       id: `quote-${Date.now()}`,
-      quoteNumber: `${profile.quotePrefix}${profile.nextQuoteSeq.toString().padStart(6, '0')}`,
+      quoteNumber: `${profile.quotePrefix || 'COT-'}${quoteSeq.toString().padStart(6, '0')}`,
       date: now.toISOString(),
       validUntil: validUntil.toISOString(),
       customerId: customer.id,

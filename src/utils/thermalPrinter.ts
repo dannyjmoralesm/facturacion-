@@ -34,7 +34,7 @@ export function generateSaleTicketText(
   const lines: string[] = [];
 
   // Header
-  lines.push(center((profile?.commercialName || profile?.name || 'NEGOFACT').toUpperCase()));
+  lines.push(center((profile?.commercialName || profile?.name || 'COMPROBANTE FISCAL').toUpperCase()));
   if (profile?.name) lines.push(center(profile.name));
   lines.push(center(`RIF: ${profile?.rif || 'J-00000000-0'}`));
   if (profile?.address) lines.push(center(profile.address));
@@ -134,9 +134,9 @@ export function generateSaleTicketText(
 
   // Footer
   lines.push(line);
-  lines.push(center(profile.footerMessage));
-  lines.push(center('SISTEMA NEGOFACT BIMONEDA'));
-  lines.push(center('www.negofact.com.ve'));
+  if (profile.footerMessage) {
+    lines.push(center(profile.footerMessage));
+  }
 
   return lines.join('\n');
 }
@@ -255,7 +255,7 @@ export function generateQuoteTicketText(
   };
 
   const lines: string[] = [];
-  lines.push(center((profile?.commercialName || profile?.name || 'NEGOFACT').toUpperCase()));
+  lines.push(center((profile?.commercialName || profile?.name || 'COTIZACIÓN').toUpperCase()));
   lines.push(center(`RIF: ${profile?.rif || 'J-00000000-0'}`));
   if (profile?.phone) lines.push(center(`TELF: ${profile.phone}`));
   lines.push(line);
@@ -329,7 +329,7 @@ export function generateDebtPaymentReceiptText(
   lines.push(justify('SALDO RESTANTE ($):', formatUSD(debt.remainingDebtUSD)));
   lines.push(justify('SALDO RESTANTE (Bs):', formatVES((debt.remainingDebtUSD || 0) * instRate)));
   lines.push(line);
-  lines.push(center('Comprobante de cobro emitido por NegoFact'));
+  lines.push(center('Comprobante de cobro emitido'));
   return lines.join('\n');
 }
 
@@ -378,7 +378,7 @@ export function generateSupplierPaymentReceiptText(
   lines.push(justify('SALDO PENDIENTE ($):', formatUSD(debt.remainingDebtUSD)));
   lines.push(justify('SALDO EN BS:', formatVES((debt.remainingDebtUSD || 0) * instRate)));
   lines.push(line);
-  lines.push(center('Egreso verificado y registrado en NegoFact'));
+  lines.push(center('Egreso verificado y registrado'));
   return lines.join('\n');
 }
 
@@ -479,7 +479,7 @@ export function generateDailySalesReportTicketText(
   };
 
   const lines: string[] = [];
-  lines.push(center((profile.commercialName || profile.name || 'NEGOFACT').toUpperCase()));
+  lines.push(center((profile.commercialName || profile.name || 'REPORTE DE VENTAS').toUpperCase()));
   if (profile.name) lines.push(center(profile.name));
   lines.push(center(`RIF: ${profile.rif || 'J-00000000-0'}`));
   lines.push(line);
@@ -530,7 +530,7 @@ export function generateDailySalesReportTicketText(
     lines.push(dash);
   }
 
-  lines.push(center('Reporte de Auditoría Generado por NegoFact'));
+  lines.push(center('Reporte de Auditoría Generado'));
   lines.push(center(`Impreso: ${new Date().toLocaleString('es-VE')}`));
 
   return lines.join('\n');
@@ -576,7 +576,7 @@ export function generateMonthlySalesReportTicketText(
   const avgDailyUSD = activeDays > 0 ? totalUSD / activeDays : 0;
 
   const lines: string[] = [];
-  lines.push(center((profile.commercialName || profile.name || 'NEGOFACT').toUpperCase()));
+  lines.push(center((profile.commercialName || profile.name || 'REPORTE MENSUAL').toUpperCase()));
   if (profile.name) lines.push(center(profile.name));
   lines.push(center(`RIF: ${profile.rif || 'J-00000000-0'}`));
   lines.push(line);
@@ -604,7 +604,7 @@ export function generateMonthlySalesReportTicketText(
   });
   lines.push(dash);
 
-  lines.push(center('Consolidado Fiscal emitido por NegoFact'));
+  lines.push(center('Consolidado Fiscal Emitido'));
   lines.push(center(`Fecha Impresión: ${new Date().toLocaleString('es-VE')}`));
 
   return lines.join('\n');

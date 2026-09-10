@@ -24,7 +24,9 @@ import {
   WifiOff,
   AlertTriangle,
   RotateCcw,
-  Trash2
+  Trash2,
+  FileText,
+  Hash
 } from 'lucide-react';
 import { BusinessProfile, AppUser } from '../../types';
 import { exportAllDataAsJSON, importDataFromJSON } from '../../utils/storage';
@@ -283,6 +285,95 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       onChange={(e) => setForm({ ...form, phone: e.target.value })}
                       className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white"
                     />
+                  </div>
+                </div>
+              </div>
+
+              {/* Invoice Numbering & Sequence */}
+              <div className="space-y-3 pt-3 border-t border-slate-800">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                  <h3 className="font-bold text-sm text-sky-400 flex items-center gap-1.5">
+                    <FileText className="w-4 h-4" />
+                    <span>Numeración & Correlativo de Facturación</span>
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, nextInvoiceSeq: 0, nextControlSeq: 0 })}
+                      className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-sky-300 hover:text-white rounded-lg text-xs font-semibold flex items-center gap-1 transition"
+                      title="Reiniciar correlativo para empezar a contar desde 0"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span>Empezar desde 0</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, nextInvoiceSeq: 1, nextControlSeq: 1 })}
+                      className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-emerald-300 hover:text-white rounded-lg text-xs font-semibold flex items-center gap-1 transition"
+                      title="Reiniciar correlativo para empezar a contar desde 1"
+                    >
+                      <span>Empezar desde 1</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-slate-300 block mb-1 font-semibold">Prefijo de Factura:</label>
+                    <input
+                      type="text"
+                      value={form.invoicePrefix || 'FACT-'}
+                      onChange={(e) => setForm({ ...form, invoicePrefix: e.target.value })}
+                      placeholder="FACT-"
+                      className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono uppercase"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-slate-300 block mb-1 font-semibold">Próximo Correlativo de Factura (Nro.):</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={form.nextInvoiceSeq !== undefined ? form.nextInvoiceSeq : 0}
+                      onChange={(e) => setForm({ ...form, nextInvoiceSeq: Math.max(0, parseInt(e.target.value, 10) || 0) })}
+                      className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono"
+                    />
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Próxima factura generada:{' '}
+                      <span className="font-mono font-bold text-sky-400">
+                        {form.invoicePrefix || 'FACT-'}{String(form.nextInvoiceSeq !== undefined ? form.nextInvoiceSeq : 0).padStart(6, '0')}
+                      </span>
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-slate-300 block mb-1 font-semibold">Prefijo Nro. de Control:</label>
+                    <input
+                      type="text"
+                      value={form.controlPrefix || '00-'}
+                      onChange={(e) => setForm({ ...form, controlPrefix: e.target.value })}
+                      placeholder="00-"
+                      className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-slate-300 block mb-1 font-semibold">Próximo Nro. de Control:</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={form.nextControlSeq !== undefined ? form.nextControlSeq : 0}
+                      onChange={(e) => setForm({ ...form, nextControlSeq: Math.max(0, parseInt(e.target.value, 10) || 0) })}
+                      className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono"
+                    />
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Próximo control:{' '}
+                      <span className="font-mono font-bold text-emerald-400">
+                        {form.controlPrefix || '00-'}{String(form.nextControlSeq !== undefined ? form.nextControlSeq : 0).padStart(6, '0')}
+                      </span>
+                    </p>
                   </div>
                 </div>
               </div>

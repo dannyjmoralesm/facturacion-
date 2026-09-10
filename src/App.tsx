@@ -475,8 +475,24 @@ export default function App() {
 
     const unsubSettings = subscribeGlobalSettings((settings) => {
       if (settings.profile) {
-        setProfile(settings.profile);
-        saveBusinessProfile(settings.profile);
+        const p: BusinessProfile = { ...settings.profile };
+        if (p.commercialName && /negofact/i.test(p.commercialName)) {
+          p.commercialName = p.commercialName.replace(/\s*negofact/gi, '').trim() || 'Supermercado & Víveres La Bendición';
+        }
+        if (p.email && /negofact/i.test(p.email)) {
+          p.email = 'ventas@labendicion.com.ve';
+        }
+        if (p.zelleEmail && /negofact/i.test(p.zelleEmail)) {
+          p.zelleEmail = 'pagos.labendicion@gmail.com';
+        }
+        if (p.nextInvoiceSeq === undefined || p.nextInvoiceSeq >= 1000) {
+          p.nextInvoiceSeq = 0;
+        }
+        if (p.nextControlSeq === undefined || p.nextControlSeq >= 5000) {
+          p.nextControlSeq = 0;
+        }
+        setProfile(p);
+        saveBusinessProfile(p);
       }
       if (settings.bcvRate && settings.bcvRate > 200) {
         setBcvRate(settings.bcvRate);
@@ -663,8 +679,12 @@ export default function App() {
       createdAt: new Date().toISOString()
     };
 
-    const nextInvoiceSeq = profile?.nextInvoiceSeq || 1001;
-    const nextControlSeq = profile?.nextControlSeq || 5001;
+    const nextInvoiceSeq = (profile?.nextInvoiceSeq !== undefined && !isNaN(Number(profile.nextInvoiceSeq))) 
+      ? Number(profile.nextInvoiceSeq) 
+      : 0;
+    const nextControlSeq = (profile?.nextControlSeq !== undefined && !isNaN(Number(profile.nextControlSeq))) 
+      ? Number(profile.nextControlSeq) 
+      : 0;
 
     const invoiceNumber = `${profile?.invoicePrefix || 'FACT-'}${nextInvoiceSeq.toString().padStart(6, '0')}`;
     const controlNumber = `${profile?.controlPrefix || '00-'}${nextControlSeq.toString().padStart(6, '0')}`;
@@ -866,7 +886,7 @@ export default function App() {
 
     const updatedProfile: BusinessProfile = {
       ...profile,
-      nextQuoteSeq: profile.nextQuoteSeq + 1
+      nextQuoteSeq: (Number(profile.nextQuoteSeq) || 0) + 1
     };
     setProfile(updatedProfile);
     saveBusinessProfile(updatedProfile);

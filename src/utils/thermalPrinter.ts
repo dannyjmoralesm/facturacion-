@@ -51,27 +51,30 @@ export function generateSaleTicketText(
 
   // Document Info
   lines.push(justify('COMPROBANTE DE VENTA', sale.invoiceNumber));
-  lines.push(justify('NRO. CONTROL:', sale.controlNumber));
   lines.push(justify('FECHA:', formatShortDate(sale.date)));
   lines.push(justify('CAJERO:', sale.cashierName));
   lines.push(dash);
 
-  // Customer
+  // Customer with Dirección Fiscal
   lines.push(`CLIENTE: ${sale.customerName}`);
   lines.push(`DOC/RIF: ${sale.customerDoc}`);
+  const clientAddr = sale.customerFiscalAddress || sale.customerAddress;
+  if (clientAddr) {
+    lines.push(`DIR.FIS: ${clientAddr.substring(0, is58 ? 22 : 34)}`);
+  }
   if (sale.customerPhone) {
     lines.push(`TELF:    ${sale.customerPhone}`);
   }
   lines.push(dash);
 
   // Rate Notice
-  const rateVal = (sale.bcvRate && sale.bcvRate > 0) ? sale.bcvRate : 86.45;
+  const rateVal = (sale.bcvRate && sale.bcvRate > 0) ? sale.bcvRate : 813.74;
   lines.push(justify('TASA OFICIAL BCV:', `${rateVal.toFixed(2)} Bs/$`));
   lines.push(dash);
 
   // Items Header
   if (is58) {
-    lines.push(justify('CANT x DESCRIP', 'TOTAL ($)'));
+    lines.push(justify('CANT x DESCRIP', 'TOTAL (Bs)'));
   } else {
     lines.push(justify('CANT  DESCRIPCIÓN', 'P.UNIT      TOTAL'));
   }
@@ -85,29 +88,34 @@ export function generateSaleTicketText(
 
     if (is58) {
       lines.push(`${item.quantity} ${item.unit} x ${name.substring(0, 20)}`);
-      lines.push(justify(` @ ${formatUSD(item.priceUSD)}`, `${subUsdStr}`));
+      lines.push(justify(` @ ${formatVES(item.priceVES)}`, `${subVesStr}`));
     } else {
       const leftCol = `${item.quantity} ${item.unit} ${name}`.substring(0, 24);
-      const rightCol = `${formatUSD(item.priceUSD)}  ${subUsdStr}`;
+      const rightCol = `${formatVES(item.priceVES)}  ${subVesStr}`;
       lines.push(justify(leftCol, rightCol));
-      lines.push(justify(`   ↳ Equiv: ${subVesStr}`, ''));
     }
   });
 
   lines.push(dash);
 
-  // Totals
+  // Totals - SENIAT Standard: Base Imponible + IVA 16% + IGTF 3% Divisas (Estrictamente en Bolívares)
+  lines.push(justify('BASE IMPONIBLE (Bs):', formatVES(sale.subtotalVES)));
+
   if (sale.discountUSD > 0) {
-    lines.push(justify('SUBTOTAL USD ($):', formatUSD(sale.subtotalUSD)));
-    lines.push(justify('DESCUENTO APLICADO:', `-${formatUSD(sale.discountUSD)}`));
-    lines.push(dash);
+    lines.push(justify('DESCUENTO APLICADO:', `-${formatVES(sale.discountUSD * rateVal)}`));
   }
 
-  lines.push(justify('TOTAL USD ($):', formatUSD(sale.totalUSD)));
-  lines.push(justify('TOTAL BS. (VES):', formatVES(sale.totalVES)));
+  lines.push(justify('IVA (16% OBLIGATORIO):', formatVES(sale.taxVES)));
+
+  if (sale.igtfVES && sale.igtfVES > 0) {
+    lines.push(justify('IGTF DIVISAS (3%):', `+${formatVES(sale.igtfVES)}`));
+  }
+
+  lines.push(dash);
+  lines.push(justify('TOTAL FACTURA (Bs):', formatVES(sale.totalVES)));
   lines.push(dash);
 
-  // Payments Breakdown
+  // Payments Breakdown (en Bolívares)
   lines.push(center('-- FORMAS DE PAGO --'));
   sale.payments.forEach(p => {
     const methodNameMap: Record<string, string> = {
@@ -120,7 +128,7 @@ export function generateSaleTicketText(
       credito_fiado: 'Crédito / Fiado'
     };
     const title = methodNameMap[p.method] || p.method;
-    lines.push(justify(title, `${formatUSD(p.amountUSD)} (${formatVES(p.amountVES)})`));
+    lines.push(justify(title, formatVES(p.amountVES)));
     if (p.reference) {
       lines.push(`   Ref: ${p.reference} ${p.bank ? `(${p.bank})` : ''}`);
     }
@@ -134,7 +142,7 @@ export function generateSaleTicketText(
       : sale.change.method === 'cash_usd' 
       ? 'Vuelto en Divisa $' 
       : 'Vuelto en Bs.';
-    lines.push(justify(`CAMBIO (${changeMethodText}):`, `${formatUSD(sale.change.amountUSD)} / ${formatVES(sale.change.amountVES)}`));
+    lines.push(justify(`CAMBIO (${changeMethodText}):`, formatVES(sale.change.amountVES)));
     if (sale.change.reference) {
       lines.push(`   Ref Vuelto: ${sale.change.reference}`);
     }

@@ -39,6 +39,7 @@ interface POSScreenProps {
   saleCompletedTrigger?: number;
   onOpenCheckout: (items: CartItem[], customer: Customer) => void;
   onQuickAddCustomer: (customer: Customer) => void;
+  onNavigateToCustomers?: () => void;
 }
 
 export const POSScreen: React.FC<POSScreenProps> = ({
@@ -49,7 +50,8 @@ export const POSScreen: React.FC<POSScreenProps> = ({
   userRole,
   saleCompletedTrigger,
   onOpenCheckout,
-  onQuickAddCustomer
+  onQuickAddCustomer,
+  onNavigateToCustomers
 }) => {
   const [mobileTab, setMobileTab] = useState<'catalog' | 'cart'>('catalog');
   const [searchQuery, setSearchQuery] = useState('');
@@ -218,10 +220,13 @@ export const POSScreen: React.FC<POSScreenProps> = ({
     setCart([]);
   };
 
-  // Cart Calculations
+  // Cart Calculations with Mandatory IVA (16% SENIAT)
   const cartSubtotalUSD = Number(cart.reduce((sum, item) => sum + (item.quantity * item.priceUSD), 0).toFixed(2));
   const cartDiscountUSD = Number(cart.reduce((sum, item) => sum + item.discountUSD, 0).toFixed(2));
-  const cartTotalUSD = Math.max(0, Number((cartSubtotalUSD - cartDiscountUSD).toFixed(2)));
+  const cartBaseImponibleUSD = Math.max(0, Number((cartSubtotalUSD - cartDiscountUSD).toFixed(2)));
+  const cartIvaRate = profile?.taxRatePercent || 16;
+  const cartIvaUSD = Number(((cartBaseImponibleUSD * cartIvaRate) / 100).toFixed(2));
+  const cartTotalUSD = Number((cartBaseImponibleUSD + cartIvaUSD).toFixed(2));
   const cartTotalVES = Number((cartTotalUSD * bcvRate).toFixed(2));
 
   // Quick customer creation
@@ -488,7 +493,19 @@ export const POSScreen: React.FC<POSScreenProps> = ({
               <User className="w-4 h-4" />
             </div>
             <div className="truncate">
-              <div className="text-[10px] sm:text-[11px] text-slate-400 uppercase font-semibold">Cliente:</div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] sm:text-[11px] text-slate-400 uppercase font-semibold">Cliente:</span>
+                {onNavigateToCustomers && (
+                  <button
+                    type="button"
+                    onClick={onNavigateToCustomers}
+                    className="text-[10px] text-emerald-400 hover:underline font-semibold"
+                    title="Abrir Módulo de Clientes"
+                  >
+                    (Módulo Clientes →)
+                  </button>
+                )}
+              </div>
               <button
                 onClick={() => setIsCustomerSelectorOpen(true)}
                 className="text-xs sm:text-sm font-bold text-white hover:text-emerald-400 truncate text-left transition flex items-center gap-1"
@@ -498,6 +515,12 @@ export const POSScreen: React.FC<POSScreenProps> = ({
                   ({selectedCustomer?.docType || 'V'}-{selectedCustomer?.docNumber || '00000000'})
                 </span>
               </button>
+              {(selectedCustomer?.direccionFiscal || selectedCustomer?.address) && (
+                <div className="text-[10px] text-slate-400 truncate flex items-center gap-1">
+                  <span className="text-slate-500 font-semibold">Dir. Fiscal:</span>
+                  <span className="truncate">{selectedCustomer.direccionFiscal || selectedCustomer.address}</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -615,25 +638,39 @@ export const POSScreen: React.FC<POSScreenProps> = ({
 
         {/* Cart Summary & Checkout Trigger */}
         <div className="p-3 sm:p-4 bg-slate-950 border-t border-slate-800 space-y-3 shrink-0">
-          {/* Dual Total Box */}
+          {/* Dual Total Box with Mandatory IVA Breakdown */}
           <div className="bg-slate-900/90 border border-slate-800 p-3 sm:p-3.5 rounded-xl space-y-2">
             <div className="flex items-center justify-between text-xs text-slate-400">
-              <span>Subtotal ({cart.reduce((a, b) => a + b.quantity, 0)} ítems):</span>
-              <span className="font-mono text-slate-200 font-semibold">{formatUSD(cartSubtotalUSD)}</span>
+              <span>Base Imponible ({cart.reduce((a, b) => a + b.quantity, 0)} ítems):</span>
+              <span className="font-mono text-slate-200 font-semibold">{formatUSD(cartBaseImponibleUSD)}</span>
+            </div>
+
+            {cartDiscountUSD > 0 && (
+              <div className="flex items-center justify-between text-xs text-rose-400">
+                <span>Descuento aplicado:</span>
+                <span className="font-mono font-semibold">-{formatUSD(cartDiscountUSD)}</span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between text-xs text-sky-400">
+              <span className="flex items-center gap-1">
+                <span>IVA ({cartIvaRate}% Obligatorio de Ley):</span>
+              </span>
+              <span className="font-mono font-semibold">+{formatUSD(cartIvaUSD)}</span>
             </div>
 
             <div className="h-px bg-slate-800" />
 
             <div className="flex items-end justify-between">
               <div>
-                <div className="text-[11px] sm:text-xs text-slate-400 uppercase font-bold tracking-wider">Total a Pagar</div>
+                <div className="text-[11px] sm:text-xs text-slate-400 uppercase font-bold tracking-wider">Total con IVA</div>
                 <div className="text-xl sm:text-2xl font-black text-emerald-400 font-mono leading-none mt-0.5">
                   {formatUSD(cartTotalUSD)}
                 </div>
               </div>
 
               <div className="text-right">
-                <div className="text-[10px] text-slate-400 font-mono">Tasa: {(bcvRate || 813.74).toFixed(2)} Bs/$</div>
+                <div className="text-[10px] text-slate-400 font-mono">Tasa BCV: {(bcvRate || 813.74).toFixed(2)} Bs/$</div>
                 <div className="text-base sm:text-lg font-bold text-slate-100 font-mono leading-none mt-0.5">
                   {formatVES(cartTotalVES)}
                 </div>

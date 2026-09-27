@@ -26,15 +26,17 @@ import {
   X,
   Wifi,
   WifiOff,
-  Radio
+  Radio,
+  Users,
+  Briefcase
 } from 'lucide-react';
 import { CashShift, UserRole, AppUser } from '../types';
 import { formatUSD, formatVES } from '../utils/bcvService';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 
 interface NavbarProps {
-  currentView: 'pos' | 'quotes' | 'inventory' | 'debts' | 'sales' | 'finance';
-  onNavigate: (view: 'pos' | 'quotes' | 'inventory' | 'debts' | 'sales' | 'finance') => void;
+  currentView: 'pos' | 'quotes' | 'inventory' | 'debts' | 'sales' | 'finance' | 'customers' | 'payroll';
+  onNavigate: (view: 'pos' | 'quotes' | 'inventory' | 'debts' | 'sales' | 'finance' | 'customers' | 'payroll') => void;
   bcvRate: number;
   rateDate?: string;
   isRateLoading?: boolean;
@@ -49,12 +51,14 @@ interface NavbarProps {
   onOpenArchitecture: () => void;
   onOpenPWAInstall: () => void;
   onOpenSyncModal?: () => void;
+  onOpenManual?: () => void;
   syncStatus?: 'connected' | 'connecting' | 'reconnecting' | 'offline' | 'error';
   syncConnectedCount?: number;
   activeShift: CashShift | null;
   lowStockCount?: number;
   pendingDebtsCount?: number;
   pendingPayablesCount?: number;
+  totalCustomersCount?: number;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -73,12 +77,14 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenArchitecture,
   onOpenPWAInstall,
   onOpenSyncModal,
+  onOpenManual,
   syncStatus = 'connected',
   syncConnectedCount = 1,
   activeShift,
   lowStockCount = 0,
   pendingDebtsCount = 0,
-  pendingPayablesCount = 0
+  pendingPayablesCount = 0,
+  totalCustomersCount = 0
 }) => {
   const { isInstalled, isInstallable, platform } = usePWAInstall();
   const [isEditingRate, setIsEditingRate] = useState(false);
@@ -306,6 +312,25 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </button>
 
+            {/* Clientes Tab - High Visibility */}
+            <button
+              id="nav-tab-customers"
+              onClick={() => onNavigate('customers')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-all relative ${
+                currentView === 'customers'
+                  ? 'bg-teal-600 text-white shadow-sm shadow-teal-900/50'
+                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+              }`}
+            >
+              <Users className="w-4 h-4 text-teal-300" />
+              <span>Clientes</span>
+              {totalCustomersCount > 0 && (
+                <span className="bg-teal-950 text-teal-300 border border-teal-700/60 text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-full">
+                  {totalCustomersCount}
+                </span>
+              )}
+            </button>
+
             <button
               id="nav-tab-debts"
               onClick={() => onNavigate('debts')}
@@ -355,6 +380,35 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             )}
 
+            {/* Nómina LOTTT Bimoneda Tab: Accessible ONLY to Administrador */}
+            {isAdmin ? (
+              <button
+                id="nav-tab-payroll"
+                onClick={() => onNavigate('payroll')}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-all relative ${
+                  currentView === 'payroll'
+                    ? 'bg-purple-600 text-white shadow-sm shadow-purple-900/50'
+                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                <Briefcase className="w-4 h-4 text-purple-300" />
+                <span>Nómina LOTTT</span>
+                <span className="bg-purple-950 text-purple-300 border border-purple-700/60 text-[10px] font-bold px-1.5 py-0.2 rounded-full hidden xl:inline">
+                  Bimoneda
+                </span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onOpenUserSwitch}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-500 hover:text-slate-300 hover:bg-slate-800/60 transition border border-dashed border-slate-800"
+                title="Pestaña de Nómina bloqueada para rol Vendedor. Requiere inicio de sesión como Administrador."
+              >
+                <Lock className="w-3.5 h-3.5 text-purple-500/70" />
+                <span>Nómina (Admin)</span>
+              </button>
+            )}
+
             <button
               id="nav-tab-sales"
               onClick={() => onNavigate('sales')}
@@ -394,6 +448,20 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {platform === 'android' ? 'Android' : 'Windows/PC'}
               </span>
             </button>
+
+            {onOpenManual && (
+              <button
+                id="nav-tab-manual"
+                type="button"
+                onClick={onOpenManual}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all text-purple-300 hover:text-white bg-purple-950/60 border border-purple-700/50 hover:bg-purple-900/60 shadow-xs"
+                title="Manual de Operaciones Comerciales, Fiscales y Nómina (PDF y Lector Interactivo)"
+              >
+                <BookOpen className="w-3.5 h-3.5 text-purple-400" />
+                <span className="hidden xl:inline">Manual de Operaciones</span>
+                <span className="xl:hidden">Manual</span>
+              </button>
+            )}
 
             <button
               id="nav-tab-docs"
@@ -535,6 +603,46 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 onClick={() => {
                   setIsMobileMoreMenuOpen(false);
+                  onNavigate('customers');
+                }}
+                className={`p-3 rounded-xl border text-left flex items-center gap-2.5 transition ${
+                  currentView === 'customers'
+                    ? 'bg-teal-950/80 border-teal-600 text-white'
+                    : 'bg-slate-950/80 border-slate-800 text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                <Users className="w-4 h-4 text-teal-400 shrink-0" />
+                <div>
+                  <div className="font-bold text-xs">Directorio Clientes</div>
+                  <div className="text-[10px] text-slate-500">Dirección Fiscal & Deuda</div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsMobileMoreMenuOpen(false);
+                  if (isAdmin) {
+                    onNavigate('payroll');
+                  } else {
+                    onOpenUserSwitch();
+                  }
+                }}
+                className={`p-3 rounded-xl border text-left flex items-center gap-2.5 transition ${
+                  currentView === 'payroll'
+                    ? 'bg-purple-950/80 border-purple-600 text-white'
+                    : 'bg-slate-950/80 border-slate-800 text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                <Briefcase className="w-4 h-4 text-purple-400 shrink-0" />
+                <div>
+                  <div className="font-bold text-xs">Nómina LOTTT</div>
+                  <div className="text-[10px] text-slate-500">Quincenas & Recibos</div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsMobileMoreMenuOpen(false);
                   onNavigate('sales');
                 }}
                 className={`p-3 rounded-xl border text-left flex items-center gap-2.5 transition ${
@@ -610,6 +718,25 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <div className="text-[10px] text-slate-500">Conectar teléfonos, tablets y PCs en tiempo real</div>
                 </div>
               </button>
+
+              {onOpenManual && (
+                <button
+                  onClick={() => {
+                    setIsMobileMoreMenuOpen(false);
+                    onOpenManual();
+                  }}
+                  className="p-3 rounded-xl bg-purple-950/60 border border-purple-800/60 hover:bg-purple-900/60 text-left flex items-center gap-2.5 transition text-purple-200 col-span-2"
+                >
+                  <BookOpen className="w-4 h-4 text-purple-400 shrink-0" />
+                  <div>
+                    <div className="font-bold text-xs flex items-center gap-1.5">
+                      <span>Manual de Operaciones & Régimen Legal</span>
+                      <span className="px-1.5 py-0.2 bg-purple-900 text-purple-200 text-[9px] rounded font-bold">PDF</span>
+                    </div>
+                    <div className="text-[10px] text-purple-300/80">Guía completa: SENIAT, IVA 16%, IGTF 3% y Nómina LOTTT</div>
+                  </div>
+                </button>
+              )}
 
               <button
                 onClick={() => {

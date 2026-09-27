@@ -44,27 +44,24 @@ export function generateInvoicePDF(sale: Sale, profile: BusinessProfile): jsPDF 
   // Invoice Meta Box (Right aligned inside banner or badge)
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
-  doc.text(`FACTURA / COMPROBANTE`, pageWidth - margin - 6, y + 9, { align: 'right' });
+  doc.text(`FACTURA FISCAL / COMPROBANTE`, pageWidth - margin - 6, y + 10, { align: 'right' });
   doc.setFontSize(13);
   doc.setTextColor(52, 211, 153); // emerald-400
-  doc.text(sale.invoiceNumber, pageWidth - margin - 6, y + 16, { align: 'right' });
-  doc.setFontSize(8);
-  doc.setTextColor(203, 213, 225); // slate-300
-  doc.text(`Control: ${sale.controlNumber}`, pageWidth - margin - 6, y + 22, { align: 'right' });
+  doc.text(sale.invoiceNumber, pageWidth - margin - 6, y + 18, { align: 'right' });
 
   y += 34;
 
   // Client & Transaction Info Cards
   doc.setFillColor(248, 250, 252);
   doc.setDrawColor(226, 232, 240);
-  doc.roundedRect(margin, y, 100, 26, 2, 2, 'FD');
-  doc.roundedRect(margin + 104, y, pageWidth - margin * 2 - 104, 26, 2, 2, 'FD');
+  doc.roundedRect(margin, y, 106, 28, 2, 2, 'FD');
+  doc.roundedRect(margin + 110, y, pageWidth - margin * 2 - 110, 28, 2, 2, 'FD');
 
-  // Client Box
+  // Client Box with Dirección Fiscal
   doc.setTextColor(100, 116, 139);
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
-  doc.text('DATOS DEL CLIENTE', margin + 4, y + 5);
+  doc.text('DATOS FISCALES DEL CLIENTE', margin + 4, y + 5);
 
   doc.setTextColor(15, 23, 42);
   doc.setFontSize(9);
@@ -72,31 +69,38 @@ export function generateInvoicePDF(sale: Sale, profile: BusinessProfile): jsPDF 
   doc.text(sale.customerName, margin + 4, y + 11);
   doc.setFont('helvetica', 'normal');
   doc.text(`C.I. / RIF: ${sale.customerDoc}`, margin + 4, y + 16);
-  if (sale.customerPhone) {
-    doc.text(`Teléfono: ${sale.customerPhone}`, margin + 4, y + 21);
+  
+  const clientFiscal = sale.customerFiscalAddress || sale.customerAddress || 'No registrada';
+  doc.setFontSize(7.5);
+  doc.setTextColor(71, 85, 105);
+  doc.text(`Dir. Fiscal: ${clientFiscal.substring(0, 52)}`, margin + 4, y + 21);
+  if (clientFiscal.length > 52) {
+    doc.text(clientFiscal.substring(52, 104), margin + 4, y + 25);
+  } else if (sale.customerPhone) {
+    doc.text(`Tel: ${sale.customerPhone}`, margin + 4, y + 25);
   }
 
   // Transaction Box
   doc.setTextColor(100, 116, 139);
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
-  doc.text('DETALLES DE EMISIÓN', margin + 108, y + 5);
+  doc.text('DETALLES DE EMISIÓN', margin + 114, y + 5);
 
   doc.setTextColor(15, 23, 42);
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Fecha: ${formatShortDate(sale.date)}`, margin + 108, y + 11);
-  doc.text(`Cajero: ${sale.cashierName}`, margin + 108, y + 16);
+  doc.text(`Fecha: ${formatShortDate(sale.date)}`, margin + 114, y + 11);
+  doc.text(`Cajero: ${sale.cashierName}`, margin + 114, y + 16);
 
   // Rate highlighted
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(16, 185, 129); // emerald-600
-  const saleRate = (sale.bcvRate && sale.bcvRate > 0) ? sale.bcvRate : 86.45;
-  doc.text(`Tasa Oficial BCV: ${saleRate.toFixed(2)} Bs/$`, margin + 108, y + 21);
+  const saleRate = (sale.bcvRate && sale.bcvRate > 0) ? sale.bcvRate : 813.74;
+  doc.text(`Tasa Oficial BCV: ${saleRate.toFixed(2)} Bs/$`, margin + 114, y + 22);
 
-  y += 32;
+  y += 34;
 
-  // Items Table Header
+  // Items Table Header - STRICTLY IN BOLIVARES (VES) AS REQUESTED
   doc.setFillColor(241, 245, 249);
   doc.rect(margin, y, pageWidth - margin * 2, 8, 'F');
   doc.setDrawColor(203, 213, 225);
@@ -106,11 +110,9 @@ export function generateInvoicePDF(sale: Sale, profile: BusinessProfile): jsPDF 
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
   doc.text('CANT', margin + 3, y + 5.5);
-  doc.text('DESCRIPCIÓN', margin + 18, y + 5.5);
-  doc.text('PRECIO ($)', margin + 98, y + 5.5, { align: 'right' });
-  doc.text('PRECIO (BS)', margin + 130, y + 5.5, { align: 'right' });
-  doc.text('TOTAL ($)', margin + 155, y + 5.5, { align: 'right' });
-  doc.text('TOTAL (BS)', pageWidth - margin - 3, y + 5.5, { align: 'right' });
+  doc.text('DESCRIPCIÓN DEL BIEN O SERVICIO', margin + 22, y + 5.5);
+  doc.text('PRECIO UNITARIO (BS.)', margin + 125, y + 5.5, { align: 'right' });
+  doc.text('TOTAL NETO (BS.)', pageWidth - margin - 4, y + 5.5, { align: 'right' });
 
   y += 9;
 
@@ -133,15 +135,13 @@ export function generateInvoicePDF(sale: Sale, profile: BusinessProfile): jsPDF 
     doc.text(`${item.quantity} ${item.unit}`, margin + 3, y + 4);
 
     const displayName = item.variantName ? `${item.productName} (${item.variantName})` : item.productName;
-    const truncatedName = displayName.length > 42 ? displayName.substring(0, 40) + '...' : displayName;
-    doc.text(truncatedName, margin + 18, y + 4);
+    const truncatedName = displayName.length > 55 ? displayName.substring(0, 52) + '...' : displayName;
+    doc.text(truncatedName, margin + 22, y + 4);
 
-    doc.text(formatUSD(item.priceUSD), margin + 98, y + 4, { align: 'right' });
-    doc.text(formatVES(item.priceVES), margin + 130, y + 4, { align: 'right' });
+    doc.text(formatVES(item.priceVES), margin + 125, y + 4, { align: 'right' });
     
     doc.setFont('helvetica', 'bold');
-    doc.text(formatUSD(item.subtotalUSD), margin + 155, y + 4, { align: 'right' });
-    doc.text(formatVES(item.subtotalVES), pageWidth - margin - 3, y + 4, { align: 'right' });
+    doc.text(formatVES(item.subtotalVES), pageWidth - margin - 4, y + 4, { align: 'right' });
     doc.setFont('helvetica', 'normal');
 
     y += 7.5;
@@ -153,27 +153,27 @@ export function generateInvoicePDF(sale: Sale, profile: BusinessProfile): jsPDF 
   y += 6;
 
   // Payments & Summary Columns
-  const splitBoxWidth = 100;
+  const splitBoxWidth = 95;
   const totalsBoxWidth = pageWidth - margin * 2 - splitBoxWidth - 4;
 
-  // Left: Payment methods registered
+  // Left: Payment methods registered in Bolívares
   doc.setFillColor(248, 250, 252);
-  doc.roundedRect(margin, y, splitBoxWidth, 38, 2, 2, 'FD');
+  doc.roundedRect(margin, y, splitBoxWidth, 42, 2, 2, 'FD');
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
   doc.setTextColor(71, 85, 105);
-  doc.text('DESGLOSE DE PAGO (SPLIT PAYMENTS)', margin + 4, y + 6);
+  doc.text('FORMAS DE PAGO PERCIBIDAS', margin + 4, y + 6);
 
   let payY = y + 12;
   const methodNameMap: Record<string, string> = {
     cash_usd: 'Efectivo Divisas ($)',
     cash_ves: 'Efectivo Bolívares (Bs)',
-    pago_movil: 'Pago Móvil',
-    punto_venta: 'Punto de Venta / Biopago',
-    zelle: 'Zelle',
-    binance_pay: 'Binance Pay',
-    credito_fiado: 'Crédito / Fiado'
+    pago_movil: 'Pago Móvil (Bs)',
+    punto_venta: 'Punto de Venta (Bs)',
+    zelle: 'Zelle (Divisas)',
+    binance_pay: 'Binance Pay (Divisas)',
+    credito_fiado: 'Crédito Comercial (Fiado)'
   };
 
   sale.payments.forEach(p => {
@@ -184,7 +184,7 @@ export function generateInvoicePDF(sale: Sale, profile: BusinessProfile): jsPDF 
     const refText = p.reference ? ` [Ref: ${p.reference}]` : '';
     doc.text(`• ${label}${refText}:`, margin + 4, payY);
     doc.setFont('helvetica', 'bold');
-    doc.text(`${formatUSD(p.amountUSD)} / ${formatVES(p.amountVES)}`, margin + splitBoxWidth - 4, payY, { align: 'right' });
+    doc.text(`${formatVES(p.amountVES)}`, margin + splitBoxWidth - 4, payY, { align: 'right' });
     payY += 5.5;
   });
 
@@ -192,52 +192,70 @@ export function generateInvoicePDF(sale: Sale, profile: BusinessProfile): jsPDF 
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(220, 38, 38);
     doc.text(`Cambio / Vuelto:`, margin + 4, payY);
-    doc.text(`${formatUSD(sale.change.amountUSD)} / ${formatVES(sale.change.amountVES)}`, margin + splitBoxWidth - 4, payY, { align: 'right' });
+    doc.text(`${formatVES(sale.change.amountVES)}`, margin + splitBoxWidth - 4, payY, { align: 'right' });
   }
 
-  // Right: Grand Totals
+  // Right: Grand Totals (STRICTLY IN BOLIVARES VES)
   const rightX = margin + splitBoxWidth + 4;
   doc.setFillColor(241, 245, 249);
-  doc.roundedRect(rightX, y, totalsBoxWidth, 38, 2, 2, 'FD');
+  doc.roundedRect(rightX, y, totalsBoxWidth, 42, 2, 2, 'FD');
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
+  doc.setFontSize(8.5);
   doc.setTextColor(71, 85, 105);
-  doc.text('Subtotal USD:', rightX + 4, y + 8);
+  
+  let totY = y + 7;
+  doc.text('Base Imponible (Bs.):', rightX + 4, totY);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(15, 23, 42);
-  doc.text(formatUSD(sale.subtotalUSD), pageWidth - margin - 4, y + 8, { align: 'right' });
+  doc.text(formatVES(sale.subtotalVES), pageWidth - margin - 4, totY, { align: 'right' });
 
   if (sale.discountUSD > 0) {
+    totY += 5.5;
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(220, 38, 38);
-    doc.text('Descuento:', rightX + 4, y + 14);
-    doc.text(`-${formatUSD(sale.discountUSD)}`, pageWidth - margin - 4, y + 14, { align: 'right' });
+    doc.text('Descuento Aplicado (Bs.):', rightX + 4, totY);
+    doc.text(`-${formatVES(sale.discountUSD * saleRate)}`, pageWidth - margin - 4, totY, { align: 'right' });
   }
 
-  // Total USD Highlight
+  totY += 5.5;
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(71, 85, 105);
+  doc.text('IVA (16.00%) (Bs.):', rightX + 4, totY);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(15, 23, 42);
+  doc.text(formatVES(sale.taxVES), pageWidth - margin - 4, totY, { align: 'right' });
+
+  if (sale.igtfVES && sale.igtfVES > 0) {
+    totY += 5.5;
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(168, 85, 247); // purple-500
+    doc.text('IGTF Divisas (3.00%) (Bs.):', rightX + 4, totY);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`+${formatVES(sale.igtfVES)}`, pageWidth - margin - 4, totY, { align: 'right' });
+  }
+
+  // Total VES Box Highlight
+  totY += 6;
   doc.setFillColor(15, 23, 42);
-  doc.roundedRect(rightX + 2, y + 18, totalsBoxWidth - 4, 16, 2, 2, 'F');
+  doc.roundedRect(rightX + 2, totY, totalsBoxWidth - 4, 12, 1.5, 1.5, 'F');
 
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.text('TOTAL A PAGAR:', rightX + 6, y + 25);
+  doc.setFontSize(9.5);
+  doc.text('TOTAL A PAGAR (BS.):', rightX + 5, totY + 8);
   doc.setFontSize(11);
   doc.setTextColor(52, 211, 153);
-  doc.text(formatUSD(sale.totalUSD), pageWidth - margin - 6, y + 25, { align: 'right' });
+  doc.text(formatVES(sale.totalVES), pageWidth - margin - 5, totY + 8, { align: 'right' });
 
-  doc.setFontSize(8.5);
-  doc.setTextColor(203, 213, 225);
-  doc.text(`Equivalente BCV: ${formatVES(sale.totalVES)}`, rightX + 6, y + 31);
+  y += 48;
 
-  y += 44;
-
-  // Footer Note
+  // Legal Notice
   doc.setFont('helvetica', 'italic');
   doc.setFontSize(7.5);
   doc.setTextColor(100, 116, 139);
-  doc.text(profile.footerMessage, pageWidth / 2, y, { align: 'center' });
+  doc.text(`Operación valorada en moneda nacional de curso legal (Bolívares). Tasa Oficial BCV: ${saleRate.toFixed(2)} Bs/USD.`, pageWidth / 2, y, { align: 'center' });
+  doc.text(profile.footerMessage || '¡Gracias por su preferencia!', pageWidth / 2, y + 4, { align: 'center' });
   doc.text(`Comprobante fiscal emitido por ${profile.commercialName || profile.name || 'la empresa'}`, pageWidth / 2, y + 4, { align: 'center' });
 
   return doc;
@@ -450,17 +468,14 @@ export function generateSaleTicketPDF(
   doc.setFontSize(8);
   doc.setTextColor(51, 65, 85);
   doc.text(`Factura: ${sale.invoiceNumber}`, margin, y);
-  doc.text(`Control: ${sale.controlNumber}`, rollWidth - margin, y, { align: 'right' });
+  doc.text(`Fecha: ${formatShortDate(sale.date)}`, rollWidth - margin, y, { align: 'right' });
   y += 4;
 
-  doc.text(`Fecha: ${formatShortDate(sale.date)}`, margin, y);
-  doc.text(`Cajero: ${sale.cashierName}`, rollWidth - margin, y, { align: 'right' });
-  y += 4;
-
+  doc.text(`Cajero: ${sale.cashierName}`, margin, y);
   const saleRate = (sale.bcvRate && sale.bcvRate > 0) ? sale.bcvRate : 813.74;
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(16, 185, 129);
-  doc.text(`Tasa Oficial BCV: ${saleRate.toFixed(2)} Bs/$`, rollWidth / 2, y, { align: 'center' });
+  doc.text(`Tasa Oficial BCV: ${saleRate.toFixed(2)} Bs/$`, rollWidth - margin, y, { align: 'right' });
   y += 4.5;
 
   // Línea divisoria
@@ -468,7 +483,7 @@ export function generateSaleTicketPDF(
   doc.line(margin, y, rollWidth - margin, y);
   y += 4;
 
-  // 3. Datos del cliente
+  // 3. Datos del cliente con Dirección Fiscal
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(30, 41, 59);
@@ -478,7 +493,15 @@ export function generateSaleTicketPDF(
   if (sale.customerPhone) {
     doc.text(`Telf: ${sale.customerPhone}`, rollWidth - margin, y, { align: 'right' });
   }
-  y += 4.5;
+  y += 3.8;
+  const ticketFiscal = sale.customerFiscalAddress || sale.customerAddress || '';
+  if (ticketFiscal) {
+    doc.setFontSize(7);
+    doc.setTextColor(71, 85, 105);
+    doc.text(`Dir. Fiscal: ${ticketFiscal.substring(0, 36)}`, margin, y);
+    y += 3.5;
+  }
+  y += 1;
 
   // Línea divisoria
   doc.line(margin, y, rollWidth - margin, y);
@@ -506,14 +529,13 @@ export function generateSaleTicketPDF(
     const truncated = displayName.length > itemMaxLen ? displayName.substring(0, itemMaxLen - 2) + '..' : displayName;
     
     doc.text(`${qtyText} ${truncated}`, margin, y);
-    doc.text(formatUSD(item.subtotalUSD), rollWidth - margin, y, { align: 'right' });
+    doc.text(formatVES(item.subtotalVES), rollWidth - margin, y, { align: 'right' });
     y += 3.5;
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7);
     doc.setTextColor(100, 116, 139);
-    doc.text(`P.U: ${formatUSD(item.priceUSD)} | ${formatVES(item.priceVES)}`, margin + 2, y);
-    doc.text(formatVES(item.subtotalVES), rollWidth - margin, y, { align: 'right' });
+    doc.text(`P.Unit: ${formatVES(item.priceVES)}`, margin + 2, y);
     y += 4;
   });
 
@@ -522,18 +544,30 @@ export function generateSaleTicketPDF(
   doc.line(margin, y, rollWidth - margin, y);
   y += 4;
 
-  // 6. Totales
+  // 6. Totales Fiscales (Estrictamente en Bolívares)
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(71, 85, 105);
-  doc.text('Subtotal:', margin, y);
-  doc.text(formatUSD(sale.subtotalUSD), rollWidth - margin, y, { align: 'right' });
+  doc.text('Base Imponible:', margin, y);
+  doc.text(formatVES(sale.subtotalVES), rollWidth - margin, y, { align: 'right' });
   y += 3.8;
 
   if (sale.discountUSD > 0) {
     doc.setTextColor(220, 38, 38);
-    doc.text('Descuento:', margin, y);
-    doc.text(`-${formatUSD(sale.discountUSD)}`, rollWidth - margin, y, { align: 'right' });
+    doc.text('Descuento Aplicado:', margin, y);
+    doc.text(`-${formatVES(sale.discountUSD * saleRate)}`, rollWidth - margin, y, { align: 'right' });
+    y += 3.8;
+  }
+
+  doc.setTextColor(71, 85, 105);
+  doc.text('IVA (16% Obligatorio):', margin, y);
+  doc.text(formatVES(sale.taxVES), rollWidth - margin, y, { align: 'right' });
+  y += 3.8;
+
+  if (sale.igtfVES && sale.igtfVES > 0) {
+    doc.setTextColor(147, 51, 234);
+    doc.text('IGTF Divisas (3%):', margin, y);
+    doc.text(`+${formatVES(sale.igtfVES)}`, rollWidth - margin, y, { align: 'right' });
     y += 3.8;
   }
 
@@ -544,26 +578,22 @@ export function generateSaleTicketPDF(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.setTextColor(255, 255, 255);
-  doc.text('TOTAL A PAGAR:', margin + 3, y + 4.8);
+  doc.text('TOTAL FACTURA (BS.):', margin + 3, y + 6.8);
   doc.setFontSize(10.5);
   doc.setTextColor(52, 211, 153);
-  doc.text(formatUSD(sale.totalUSD), rollWidth - margin - 3, y + 4.8, { align: 'right' });
-  
-  doc.setFontSize(7.5);
-  doc.setTextColor(203, 213, 225);
-  doc.text(`Equivalente: ${formatVES(sale.totalVES)}`, margin + 3, y + 9.2);
+  doc.text(formatVES(sale.totalVES), rollWidth - margin - 3, y + 6.8, { align: 'right' });
   y += 14;
 
-  // 7. Desglose de pagos
+  // 7. Desglose de pagos (en Bolívares)
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
   doc.setTextColor(71, 85, 105);
-  doc.text('DESGLOSE DE PAGO:', margin, y);
+  doc.text('FORMAS DE PAGO PERCIBIDAS:', margin, y);
   y += 3.5;
 
   const methodNameMap: Record<string, string> = {
-    cash_usd: 'Efectivo $',
-    cash_ves: 'Efectivo Bs',
+    cash_usd: 'Efectivo Divisas ($)',
+    cash_ves: 'Efectivo Bolívares (Bs)',
     pago_movil: 'Pago Móvil',
     punto_venta: 'Punto de Venta',
     zelle: 'Zelle',
@@ -579,7 +609,7 @@ export function generateSaleTicketPDF(
     const ref = p.reference ? ` (${p.reference})` : '';
     doc.text(`• ${label}${ref}:`, margin, y);
     doc.setFont('helvetica', 'bold');
-    doc.text(`${formatUSD(p.amountUSD)} / ${formatVES(p.amountVES)}`, rollWidth - margin, y, { align: 'right' });
+    doc.text(formatVES(p.amountVES), rollWidth - margin, y, { align: 'right' });
     y += 3.5;
   });
 
@@ -588,7 +618,7 @@ export function generateSaleTicketPDF(
     doc.setFontSize(7);
     doc.setTextColor(220, 38, 38);
     doc.text('• Cambio / Vuelto:', margin, y);
-    doc.text(`${formatUSD(sale.change.amountUSD)} / ${formatVES(sale.change.amountVES)}`, rollWidth - margin, y, { align: 'right' });
+    doc.text(formatVES(sale.change.amountVES), rollWidth - margin, y, { align: 'right' });
     y += 3.8;
   }
 

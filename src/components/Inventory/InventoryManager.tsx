@@ -61,6 +61,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
   const [formType, setFormType] = useState<'physical' | 'service'>('physical');
   const [formPriceUSD, setFormPriceUSD] = useState('');
   const [formCostUSD, setFormCostUSD] = useState('');
+  const [formMarginPercent, setFormMarginPercent] = useState('30');
   const [formStock, setFormStock] = useState('10');
   const [formMinStock, setFormMinStock] = useState('5');
   const [formUnit, setFormUnit] = useState('UND');
@@ -324,7 +325,9 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                 <th className="p-3.5">Descripción & Categoría</th>
                 <th className="p-3.5">Tipo</th>
                 {userRole === 'admin' && <th className="p-3.5 text-right">Costo ($)</th>}
-                <th className="p-3.5 text-right">Precio ($ / Bs)</th>
+                <th className="p-3.5 text-right">Base Imponible ($)</th>
+                <th className="p-3.5 text-right">IVA (16%)</th>
+                <th className="p-3.5 text-right">PVP Final ($ / Bs)</th>
                 <th className="p-3.5 text-center">Stock</th>
                 {userRole === 'admin' && <th className="p-3.5 text-center">Acciones</th>}
               </tr>
@@ -334,6 +337,9 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                 const isLowStock = p.type === 'physical' && p.stock <= p.minStock;
                 const isOutOfStock = p.type === 'physical' && p.stock <= 0;
                 const margin = p.costUSD && p.priceUSD ? ((p.priceUSD - p.costUSD) / p.priceUSD * 100).toFixed(0) : null;
+                const ivaRate = profile.taxRatePercent || 16;
+                const ivaUSD = Number(((p.priceUSD * ivaRate) / 100).toFixed(2));
+                const pvpUSD = Number((p.priceUSD + ivaUSD).toFixed(2));
 
                 return (
                   <tr key={p.id} className="hover:bg-slate-850 transition">
@@ -372,9 +378,19 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                       </td>
                     )}
 
+                    <td className="p-3.5 text-right font-mono text-slate-200">
+                      <div>{formatUSD(p.priceUSD)}</div>
+                      <div className="text-[10px] text-slate-500">{formatVES(p.priceUSD * bcvRate)}</div>
+                    </td>
+
+                    <td className="p-3.5 text-right font-mono text-sky-400">
+                      <div>+{formatUSD(ivaUSD)}</div>
+                      <div className="text-[10px] text-slate-500">{formatVES(ivaUSD * bcvRate)}</div>
+                    </td>
+
                     <td className="p-3.5 text-right font-mono">
-                      <div className="font-bold text-emerald-400 text-sm">{formatUSD(p.priceUSD)}</div>
-                      <div className="text-[11px] text-slate-400">{formatVES(p.priceUSD * bcvRate)}</div>
+                      <div className="font-bold text-emerald-400 text-sm">{formatUSD(pvpUSD)}</div>
+                      <div className="text-[11px] text-slate-400">{formatVES(pvpUSD * bcvRate)}</div>
                     </td>
 
                     <td className="p-3.5 text-center">
@@ -599,37 +615,125 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                 </div>
               </div>
 
-              {/* Price & Cost */}
-              <div className="grid grid-cols-2 gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
-                <div>
-                  <label className="text-xs font-semibold text-emerald-400 block mb-1">Precio Venta USD ($):</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    required
-                    value={formPriceUSD}
-                    onChange={(e) => setFormPriceUSD(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm font-mono font-bold text-white"
-                  />
-                  {formPriceUSD && (
-                    <div className="text-[10px] text-slate-400 mt-1">
-                      Equivalente: {formatVES(parseFloat(formPriceUSD) * bcvRate)}
-                    </div>
-                  )}
+              {/* Price, Margin & IVA Calculator (Formula: Costo + Ganancia = Base Imponible, Base + IVA 16% = PVP) */}
+              <div className="bg-slate-950 p-4 rounded-2xl border border-emerald-900/40 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
+                    <Calculator className="w-4 h-4" />
+                    <span>Estructura de Precios: Costo + Ganancia + IVA Obligatorio</span>
+                  </div>
+                  <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full font-bold border border-emerald-500/20">
+                    IVA 16% SENIAT
+                  </span>
                 </div>
 
-                <div>
-                  <label className="text-xs font-semibold text-slate-400 block mb-1">Costo Estimado USD ($):</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formCostUSD}
-                    onChange={(e) => setFormCostUSD(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm font-mono text-white"
-                  />
+                {/* 3 Input Columns: Costo, Margen %, Precio de Venta (Base) */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-300 block mb-1">
+                      1. Costo USD ($):
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={formCostUSD}
+                      onChange={(e) => {
+                        const newCost = e.target.value;
+                        setFormCostUSD(newCost);
+                        const c = parseFloat(newCost) || 0;
+                        const m = parseFloat(formMarginPercent) || 0;
+                        if (c > 0) {
+                          const net = c + (c * m / 100);
+                          setFormPriceUSD(net.toFixed(2));
+                        }
+                      }}
+                      placeholder="0.00"
+                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm font-mono text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-slate-300 block mb-1">
+                      2. Margen Ganancia (%):
+                    </label>
+                    <input
+                      type="number"
+                      step="1"
+                      value={formMarginPercent}
+                      onChange={(e) => {
+                        const newMargin = e.target.value;
+                        setFormMarginPercent(newMargin);
+                        const c = parseFloat(formCostUSD) || 0;
+                        const m = parseFloat(newMargin) || 0;
+                        if (c > 0) {
+                          const net = c + (c * m / 100);
+                          setFormPriceUSD(net.toFixed(2));
+                        }
+                      }}
+                      placeholder="30"
+                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm font-mono text-emerald-400 font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-emerald-400 block mb-1">
+                      3. Precio Neto / Base ($): *
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      value={formPriceUSD}
+                      onChange={(e) => {
+                        const newPrice = e.target.value;
+                        setFormPriceUSD(newPrice);
+                        const p = parseFloat(newPrice) || 0;
+                        const c = parseFloat(formCostUSD) || 0;
+                        if (c > 0 && p >= c) {
+                          const m = ((p - c) / c) * 100;
+                          setFormMarginPercent(m.toFixed(1));
+                        }
+                      }}
+                      placeholder="0.00"
+                      className="w-full px-3 py-2 bg-slate-900 border border-emerald-600/70 rounded-xl text-sm font-mono font-black text-white"
+                    />
+                  </div>
                 </div>
+
+                {/* Live Formula Decomposition Box */}
+                {(() => {
+                  const cost = parseFloat(formCostUSD) || 0;
+                  const net = parseFloat(formPriceUSD) || 0;
+                  const profit = Math.max(0, net - cost);
+                  const ivaRate = profile.taxRatePercent || 16;
+                  const iva = Number(((net * ivaRate) / 100).toFixed(2));
+                  const pvp = Number((net + iva).toFixed(2));
+
+                  return (
+                    <div className="bg-slate-900 p-3 rounded-xl border border-slate-800 text-xs space-y-1.5">
+                      <div className="flex items-center justify-between text-slate-300">
+                        <span>• Costo Base:</span>
+                        <span className="font-mono font-semibold">{formatUSD(cost)} ({formatVES(cost * bcvRate)})</span>
+                      </div>
+                      <div className="flex items-center justify-between text-emerald-400">
+                        <span>• Ganancia Neta (+{formMarginPercent}%):</span>
+                        <span className="font-mono font-semibold">+{formatUSD(profit)}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-slate-100 font-bold pt-1 border-t border-slate-800">
+                        <span>= Base Imponible (Precio Neto):</span>
+                        <span className="font-mono">{formatUSD(net)} ({formatVES(net * bcvRate)})</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sky-400 font-semibold">
+                        <span>+ IVA ({ivaRate}% Obligatorio de Ley):</span>
+                        <span className="font-mono">+{formatUSD(iva)} (+{formatVES(iva * bcvRate)})</span>
+                      </div>
+                      <div className="flex items-center justify-between text-white font-black text-sm pt-1.5 border-t border-slate-800 bg-slate-950 p-2 rounded-lg">
+                        <span className="text-emerald-400">PVP FINAL AL CONSUMIDOR:</span>
+                        <span className="font-mono text-emerald-300">{formatUSD(pvp)} · {formatVES(pvp * bcvRate)}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Stock controls (if physical) */}

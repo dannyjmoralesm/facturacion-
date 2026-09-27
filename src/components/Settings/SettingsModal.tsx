@@ -365,44 +365,88 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </div>
 
                   <div>
-                    <label className="text-slate-300 block mb-1 font-semibold">Prefijo Nro. de Control:</label>
+                    <label className="text-slate-300 block mb-1 font-semibold">Prefijo de Cotizaciones:</label>
                     <input
                       type="text"
-                      value={form.controlPrefix || '00-'}
-                      onChange={(e) => setForm({ ...form, controlPrefix: e.target.value })}
-                      placeholder="00-"
+                      value={form.quotePrefix || 'COT-'}
+                      onChange={(e) => setForm({ ...form, quotePrefix: e.target.value })}
+                      placeholder="COT-"
+                      className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Fiscal Taxes & Nómina Settings */}
+              <div className="space-y-3 pt-3 border-t border-slate-800">
+                <h3 className="font-bold text-sm text-emerald-400 flex items-center gap-1.5 border-b border-slate-800 pb-1.5">
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>Régimen Fiscal (IVA 16% & IGTF 3% Divisas) & Parámetros Laborales</span>
+                </h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-slate-300 block mb-1 font-semibold">
+                      Alícuota General IVA (% Obligatorio):
+                    </label>
+                    <input
+                      type="number"
+                      step="1"
+                      value={form.taxRatePercent || 16}
+                      onChange={(e) => setForm({ ...form, taxRatePercent: parseFloat(e.target.value) || 16 })}
+                      className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono font-bold"
+                    />
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Fórmula de ley: Costo + Ganancia = Base Imponible; Base + IVA 16% = Total.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-slate-300 block mb-1 font-semibold">
+                      IGTF sobre Divisas / Moneda Internacional (%):
+                    </label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      value={form.igtfRatePercent !== undefined ? form.igtfRatePercent : 3}
+                      onChange={(e) => setForm({ ...form, igtfRatePercent: parseFloat(e.target.value) || 3 })}
+                      className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono font-bold"
+                    />
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Aplica automáticamente en pagos con Efectivo USD, Zelle o Binance Pay.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-slate-300 block mb-1 font-semibold">
+                      Cestaticket de Ley Nómina ($ USD indexado):
+                    </label>
+                    <input
+                      type="number"
+                      step="5"
+                      value={form.defaultCestaticketUSD || 40}
+                      onChange={(e) => setForm({ ...form, defaultCestaticketUSD: parseFloat(e.target.value) || 40 })}
                       className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono"
                     />
                   </div>
 
                   <div>
-                    <label className="text-slate-300 block mb-1 font-semibold">Próximo Nro. de Control:</label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={form.nextControlSeq !== undefined ? form.nextControlSeq : 0}
-                      onChange={(e) => setForm({ ...form, nextControlSeq: Math.max(0, parseInt(e.target.value, 10) || 0) })}
+                    <label className="text-slate-300 block mb-1 font-semibold">
+                      Aporte Patronal IVSS Empresa (%):
+                    </label>
+                    <select
+                      value={form.ivssRiskRatePercent || 9}
+                      onChange={(e) => setForm({ ...form, ivssRiskRatePercent: parseInt(e.target.value, 10) || 9 })}
                       className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono"
-                    />
-                    <p className="text-[11px] text-slate-400 mt-1">
-                      Próximo control:{' '}
-                      <span className="font-mono font-bold text-emerald-400">
-                        {form.controlPrefix || '00-'}{String(form.nextControlSeq !== undefined ? form.nextControlSeq : 0).padStart(6, '0')}
-                      </span>
-                    </p>
+                    >
+                      <option value={9}>9% - Riesgo Mínimo</option>
+                      <option value={10}>10% - Riesgo Medio</option>
+                      <option value={11}>11% - Riesgo Máximo</option>
+                    </select>
                   </div>
                 </div>
-              </div>
 
-              {/* Printing & VAT */}
-              <div className="space-y-3 pt-3 border-t border-slate-800">
-                <h3 className="font-bold text-sm text-amber-400 flex items-center gap-1.5 border-b border-slate-800 pb-1.5">
-                  <Printer className="w-4 h-4" />
-                  <span>Impresión Térmica & Facturación</span>
-                </h3>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                   <div>
                     <label className="text-slate-300 block mb-1 font-semibold">Ancho Predeterminado Ticket Térmico:</label>
                     <select
@@ -416,25 +460,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </div>
 
                   <div>
-                    <label className="text-slate-300 block mb-1 font-semibold">Impuesto IVA Aplicable (%):</label>
+                    <label className="text-slate-300 block mb-1 font-semibold">Mensaje de Pie de Factura / Ticket:</label>
                     <input
-                      type="number"
-                      step="1"
-                      value={form.taxRatePercent || 16}
-                      onChange={(e) => setForm({ ...form, taxRatePercent: parseFloat(e.target.value) || 0 })}
-                      className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono"
+                      type="text"
+                      value={form.footerMessage}
+                      onChange={(e) => setForm({ ...form, footerMessage: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white"
                     />
                   </div>
-                </div>
-
-                <div>
-                  <label className="text-slate-300 block mb-1 font-semibold">Mensaje de Pie de Factura / Ticket:</label>
-                  <input
-                    type="text"
-                    value={form.footerMessage}
-                    onChange={(e) => setForm({ ...form, footerMessage: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white"
-                  />
                 </div>
               </div>
 

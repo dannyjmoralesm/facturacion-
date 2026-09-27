@@ -147,9 +147,23 @@ export const SplitPaymentModal: React.FC<SplitPaymentModalProps> = ({
     };
   }, [discountType, discountValue, grossSubtotalUSD, safeRate]);
 
-  // Net totals to charge
-  const netTotalUSD = Math.max(0, Number((grossSubtotalUSD - discountUSD).toFixed(2)));
-  const netTotalVES = Number((netTotalUSD * safeRate).toFixed(2));
+  // Helper to determine if a payment method is foreign currency (subject to 3% IGTF)
+  const isForeignCurrencyMethod = (m: PaymentMethodType) => {
+    return m === 'cash_usd' || m === 'zelle' || m === 'binance_pay';
+  };
+
+  // 1. Base Imponible (gross items subtotal minus discount)
+  const baseImponibleUSD = Math.max(0, Number((grossSubtotalUSD - discountUSD).toFixed(2)));
+  const baseImponibleVES = Number((baseImponibleUSD * safeRate).toFixed(2));
+
+  // 2. IVA Obligatorio 16% (SENIAT)
+  const ivaRate = profile?.taxRatePercent || 16;
+  const ivaUSD = Number(((baseImponibleUSD * ivaRate) / 100).toFixed(2));
+  const ivaVES = Number((ivaUSD * safeRate).toFixed(2));
+
+  // 3. Subtotal con IVA
+  const subtotalWithIVAUSD = Number((baseImponibleUSD + ivaUSD).toFixed(2));
+  const subtotalWithIVAVES = Number((subtotalWithIVAUSD * safeRate).toFixed(2));
 
   const [splits, setSplits] = useState<PaymentSplit[]>([]);
   
@@ -161,6 +175,31 @@ export const SplitPaymentModal: React.FC<SplitPaymentModalProps> = ({
   const [bank, setBank] = useState<string>(VENEZUELAN_BANKS[0]);
   const [changeMethod, setChangeMethod] = useState<'cash_usd' | 'cash_ves' | 'pago_movil'>('cash_usd');
   const [changePagoMovilRef, setChangePagoMovilRef] = useState<string>('');
+
+  // 4. IGTF 3% Divisas Calculation
+  const foreignCurrencyPaidInSplitsUSD = useMemo(() => {
+    return splits
+      .filter(s => isForeignCurrencyMethod(s.method))
+      .reduce((sum, s) => sum + s.amountUSD, 0);
+  }, [splits]);
+
+  const isCurrentDraftForeign = isForeignCurrencyMethod(selectedMethod);
+
+  const calculatedIGTFUSD = useMemo(() => {
+    if (splits.length > 0) {
+      return Number(((foreignCurrencyPaidInSplitsUSD * 3) / 100).toFixed(2));
+    }
+    if (isCurrentDraftForeign) {
+      return Number(((subtotalWithIVAUSD * 3) / 100).toFixed(2));
+    }
+    return 0;
+  }, [splits.length, foreignCurrencyPaidInSplitsUSD, isCurrentDraftForeign, subtotalWithIVAUSD]);
+
+  const calculatedIGTFVES = Number((calculatedIGTFUSD * safeRate).toFixed(2));
+
+  // Total Net to Charge (Base + IVA + IGTF)
+  const netTotalUSD = Number((subtotalWithIVAUSD + calculatedIGTFUSD).toFixed(2));
+  const netTotalVES = Number((netTotalUSD * safeRate).toFixed(2));
 
   // Calculate totals paid so far
   const totalPaidUSD = Number(splits.reduce((sum, s) => sum + s.amountUSD, 0).toFixed(2));
@@ -306,23 +345,32 @@ export const SplitPaymentModal: React.FC<SplitPaymentModalProps> = ({
 
   const handleQuickPayComplete = (method: PaymentMethodType) => {
     setIsSubmitting(true);
+    const isForeign = isForeignCurrencyMethod(method);
+    const applicableIGTFUSD = isForeign ? Number(((subtotalWithIVAUSD * 3) / 100).toFixed(2)) : 0;
+    const applicableIGTFVES = Number((applicableIGTFUSD * safeRate).toFixed(2));
+    const quickTotalUSD = Number((subtotalWithIVAUSD + applicableIGTFUSD).toFixed(2));
+    const quickTotalVES = Number((quickTotalUSD * safeRate).toFixed(2));
+
     const split: PaymentSplit = {
       id: `split-quick-${Date.now()}`,
       method,
-      amountUSD: netTotalUSD,
-      amountVES: netTotalVES,
+      amountUSD: quickTotalUSD,
+      amountVES: quickTotalVES,
       appliedRate: safeRate,
       reference: reference.trim() || undefined,
       bank: (method === 'pago_movil' || method === 'punto_venta') ? bank : undefined
     };
 
     const totalsPayload = {
-      subtotalUSD: grossSubtotalUSD,
+      subtotalUSD: baseImponibleUSD,
       discountUSD: discountUSD,
-      taxUSD: 0,
-      totalUSD: netTotalUSD,
-      totalVES: netTotalVES,
-      creditAmountUSD: method === 'credito_fiado' ? netTotalUSD : 0
+      taxUSD: ivaUSD,
+      taxRatePercent: ivaRate,
+      igtfUSD: applicableIGTFUSD,
+      igtfVES: applicableIGTFVES,
+      totalUSD: quickTotalUSD,
+      totalVES: quickTotalVES,
+      creditAmountUSD: method === 'credito_fiado' ? quickTotalUSD : 0
     };
 
     onCompleteSale([split], totalsPayload, undefined, items, customer);
@@ -390,9 +438,12 @@ export const SplitPaymentModal: React.FC<SplitPaymentModalProps> = ({
       .reduce((sum, s) => sum + s.amountUSD, 0);
 
     const totalsPayload = {
-      subtotalUSD: grossSubtotalUSD,
+      subtotalUSD: baseImponibleUSD,
       discountUSD: discountUSD,
-      taxUSD: 0,
+      taxUSD: ivaUSD,
+      taxRatePercent: ivaRate,
+      igtfUSD: calculatedIGTFUSD,
+      igtfVES: calculatedIGTFVES,
       totalUSD: netTotalUSD,
       totalVES: netTotalVES,
       creditAmountUSD
@@ -1056,11 +1107,11 @@ export const SplitPaymentModal: React.FC<SplitPaymentModalProps> = ({
                 )}
               </div>
 
-              {/* Calculation Summary Card */}
+              {/* Calculation Summary Card with Full SENIAT Breakdown */}
               <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2 text-xs">
                 <div className="flex justify-between text-slate-400">
-                  <span>Subtotal Bruto:</span>
-                  <span className="font-mono text-slate-200">{formatUSD(grossSubtotalUSD)} ({formatVES(grossSubtotalVES)})</span>
+                  <span>Base Imponible:</span>
+                  <span className="font-mono text-slate-200">{formatUSD(baseImponibleUSD)} ({formatVES(baseImponibleVES)})</span>
                 </div>
 
                 {discountUSD > 0 && (
@@ -1073,9 +1124,26 @@ export const SplitPaymentModal: React.FC<SplitPaymentModalProps> = ({
                   </div>
                 )}
 
-                <div className="flex justify-between text-slate-300 font-bold pt-1 border-t border-slate-800">
-                  <span>Total Neto Factura:</span>
-                  <span className="font-mono text-emerald-400">{formatUSD(netTotalUSD)} / {formatVES(netTotalVES)}</span>
+                <div className="flex justify-between text-sky-400 font-semibold">
+                  <span>IVA ({ivaRate}% Obligatorio):</span>
+                  <span className="font-mono">+{formatUSD(ivaUSD)} (+{formatVES(ivaVES)})</span>
+                </div>
+
+                <div className="flex justify-between text-slate-300 font-semibold pt-1 border-t border-slate-800">
+                  <span>Subtotal con IVA:</span>
+                  <span className="font-mono">{formatUSD(subtotalWithIVAUSD)} ({formatVES(subtotalWithIVAVES)})</span>
+                </div>
+
+                {calculatedIGTFUSD > 0 && (
+                  <div className="flex justify-between text-purple-400 font-semibold bg-purple-950/30 p-1.5 rounded-lg border border-purple-900/40">
+                    <span>IGTF Divisas (3%):</span>
+                    <span className="font-mono">+{formatUSD(calculatedIGTFUSD)} (+{formatVES(calculatedIGTFVES)})</span>
+                  </div>
+                )}
+
+                <div className="flex justify-between text-slate-200 font-bold pt-1 border-t border-slate-800">
+                  <span>Total Factura a Cobrar:</span>
+                  <span className="font-mono text-emerald-400 font-black text-sm">{formatUSD(netTotalUSD)} / {formatVES(netTotalVES)}</span>
                 </div>
 
                 <div className="flex justify-between text-slate-400">

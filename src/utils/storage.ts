@@ -10,7 +10,10 @@ import {
   AppUser,
   Expense,
   Supplier,
-  SupplierDebt
+  SupplierDebt,
+  Employee,
+  PayrollPeriod,
+  PayrollReceipt
 } from '../types';
 
 const STORAGE_KEYS = {
@@ -27,7 +30,10 @@ const STORAGE_KEYS = {
   CURRENT_USER_ID: 'negofact_current_user_id_v1',
   EXPENSES: 'negofact_expenses_v1',
   SUPPLIERS: 'negofact_suppliers_v1',
-  SUPPLIER_DEBTS: 'negofact_supplier_debts_v1'
+  SUPPLIER_DEBTS: 'negofact_supplier_debts_v1',
+  EMPLOYEES: 'negofact_employees_v1',
+  PAYROLL_PERIODS: 'negofact_payroll_periods_v1',
+  PAYROLL_RECEIPTS: 'negofact_payroll_receipts_v1'
 };
 
 const DEFAULT_PROFILE: BusinessProfile = {
@@ -53,8 +59,12 @@ const DEFAULT_PROFILE: BusinessProfile = {
   binancePayId: '',
   defaultThermalSize: '80mm',
   footerMessage: '¡Gracias por su compra! Tasa BCV aplicada según normativa vigente.',
-  enableTax: false,
-  taxRatePercent: 16
+  enableTax: true, // IVA Obligatorio
+  taxRatePercent: 16,
+  enableIGTF: true, // IGTF 3% Divisas
+  igtfRatePercent: 3,
+  defaultCestaticketUSD: 40,
+  ivssRiskRatePercent: 9
 };
 
 const INITIAL_PRODUCTS: Product[] = [
@@ -221,7 +231,8 @@ const INITIAL_CUSTOMERS: Customer[] = [
     name: 'Consumidor Final',
     phone: '',
     email: '',
-    address: 'Mostrador',
+    address: 'Venta por Mostrador',
+    direccionFiscal: 'Av. Principal, Local Comercial S/N',
     totalDebtUSD: 0,
     createdAt: new Date().toISOString()
   },
@@ -233,6 +244,7 @@ const INITIAL_CUSTOMERS: Customer[] = [
     phone: '04141234567',
     email: 'carlos.mendoza@gmail.com',
     address: 'Urb. El Parral, Res. Arboleda, Apto 4B, Valencia',
+    direccionFiscal: 'Urb. El Parral, Calle Los Almendros, Torre Arboleda, Piso 4, Valencia, Edo. Carabobo',
     totalDebtUSD: 18.50,
     createdAt: new Date().toISOString()
   },
@@ -244,6 +256,7 @@ const INITIAL_CUSTOMERS: Customer[] = [
     phone: '04245678901',
     email: 'compras@losandes.com.ve',
     address: 'Zona Industrial Castillito, Galpón 8',
+    direccionFiscal: 'Av. Circunvalación Norte, Zona Industrial Castillito, Galpón Nro 8-B, Municipio San Diego, Carabobo. RIF: J-50123499-1',
     totalDebtUSD: 0,
     createdAt: new Date().toISOString()
   },
@@ -255,7 +268,109 @@ const INITIAL_CUSTOMERS: Customer[] = [
     phone: '04129876543',
     email: 'mariae.gomez@hotmail.com',
     address: 'Av. Cedeño, Edif. Torre Banaven',
+    direccionFiscal: 'Av. Cedeño cruce con Paseo Cabriales, Torre Banaven, Piso 5, Ofic. 502, Valencia, Edo. Carabobo',
     totalDebtUSD: 42.00,
+    createdAt: new Date().toISOString()
+  }
+];
+
+const INITIAL_EMPLOYEES: Employee[] = [
+  {
+    id: 'emp-1',
+    docType: 'V',
+    docNumber: '17892341',
+    firstName: 'Roberto Carlos',
+    lastName: 'Pérez Silva',
+    fullName: 'Roberto Carlos Pérez Silva',
+    email: 'roberto.perez@empresa.com',
+    phone: '04141239876',
+    position: 'Gerente de Operaciones y Ventas',
+    department: 'Administración',
+    hireDate: '2022-01-15',
+    contractType: 'indefinido',
+    salaryCurrency: 'USD',
+    baseSalary: 450,
+    hasCestaticket: true,
+    customCestaticketUSD: 40,
+    productionBonusUSD: 50,
+    bankName: '0102 - Banco de Venezuela',
+    bankAccountNumber: '01020123450100123456',
+    pagoMovilPhone: '04141239876',
+    status: 'active',
+    address: 'Valencia, Edo. Carabobo',
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'emp-2',
+    docType: 'V',
+    docNumber: '24119854',
+    firstName: 'Valeria Sofía',
+    lastName: 'Castillo Méndez',
+    fullName: 'Valeria Sofía Castillo Méndez',
+    email: 'valeria.castillo@empresa.com',
+    phone: '04245671122',
+    position: 'Cajera Principal / Facturación',
+    department: 'Ventas',
+    hireDate: '2023-04-10',
+    contractType: 'indefinido',
+    salaryCurrency: 'USD',
+    baseSalary: 230,
+    hasCestaticket: true,
+    customCestaticketUSD: 40,
+    productionBonusUSD: 30,
+    bankName: '0134 - Banesco',
+    bankAccountNumber: '01340987650100987654',
+    pagoMovilPhone: '04245671122',
+    status: 'active',
+    address: 'Naguanagua, Edo. Carabobo',
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'emp-3',
+    docType: 'V',
+    docNumber: '21094321',
+    firstName: 'José Gregorio',
+    lastName: 'Rivas Delgado',
+    fullName: 'José Gregorio Rivas Delgado',
+    phone: '04123456789',
+    position: 'Encargado de Inventario & Almacén',
+    department: 'Almacén',
+    hireDate: '2022-09-01',
+    contractType: 'indefinido',
+    salaryCurrency: 'USD',
+    baseSalary: 280,
+    hasCestaticket: true,
+    customCestaticketUSD: 40,
+    productionBonusUSD: 35,
+    bankName: '0108 - Banco Provincial',
+    bankAccountNumber: '01080345670100345678',
+    pagoMovilPhone: '04123456789',
+    status: 'active',
+    address: 'San Diego, Edo. Carabobo',
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'emp-4',
+    docType: 'V',
+    docNumber: '26456789',
+    firstName: 'Andrea Carolina',
+    lastName: 'Colmenares',
+    fullName: 'Andrea Carolina Colmenares',
+    phone: '04169871234',
+    position: 'Asesora de Ventas Mostrador',
+    department: 'Ventas',
+    hireDate: '2024-02-15',
+    contractType: 'indefinido',
+    salaryCurrency: 'USD',
+    baseSalary: 210,
+    hasCestaticket: true,
+    customCestaticketUSD: 40,
+    productionBonusUSD: 25,
+    bankName: '0105 - Banco Mercantil',
+    bankAccountNumber: '01050234560100234567',
+    pagoMovilPhone: '04169871234',
+    status: 'active',
+    address: 'Valencia, Edo. Carabobo',
     createdAt: new Date().toISOString()
   }
 ];
@@ -554,18 +669,25 @@ export function getCustomers(): Customer[] {
     const saved = localStorage.getItem(STORAGE_KEYS.CUSTOMERS);
     if (saved !== null) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map((c: any) => ({
+          ...c,
+          direccionFiscal: c.direccionFiscal || c.address || 'Av. Principal, Local Comercial'
+        }));
+      }
     }
   } catch (e) {
     console.error('Error loading customers:', e);
   }
   const isInitialized = localStorage.getItem('negofact_initialized_v1');
   if (isInitialized) {
-    return [];
+    // If empty after reset, return initial default customers with full fiscal addresses
+    saveCustomers(INITIAL_CUSTOMERS);
+    return INITIAL_CUSTOMERS;
   }
   localStorage.setItem('negofact_initialized_v1', 'true');
-  saveCustomers([]);
-  return [];
+  saveCustomers(INITIAL_CUSTOMERS);
+  return INITIAL_CUSTOMERS;
 }
 
 export function saveCustomers(customers: Customer[]): void {
@@ -573,6 +695,74 @@ export function saveCustomers(customers: Customer[]): void {
     localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify(customers));
   } catch (e) {
     console.error('Error saving customers:', e);
+  }
+}
+
+// ==========================================
+// MÓDULO DE NÓMINA (STORAGE HELPERS)
+// ==========================================
+
+export function getEmployees(): Employee[] {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEYS.EMPLOYEES);
+    if (saved !== null) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {
+    console.error('Error loading employees:', e);
+  }
+  saveEmployees(INITIAL_EMPLOYEES);
+  return INITIAL_EMPLOYEES;
+}
+
+export function saveEmployees(employees: Employee[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(employees));
+  } catch (e) {
+    console.error('Error saving employees:', e);
+  }
+}
+
+export function getPayrollPeriods(): PayrollPeriod[] {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEYS.PAYROLL_PERIODS);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (e) {
+    console.error('Error loading payroll periods:', e);
+  }
+  return [];
+}
+
+export function savePayrollPeriods(periods: PayrollPeriod[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.PAYROLL_PERIODS, JSON.stringify(periods));
+  } catch (e) {
+    console.error('Error saving payroll periods:', e);
+  }
+}
+
+export function getPayrollReceipts(): PayrollReceipt[] {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEYS.PAYROLL_RECEIPTS);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (e) {
+    console.error('Error loading payroll receipts:', e);
+  }
+  return [];
+}
+
+export function savePayrollReceipts(receipts: PayrollReceipt[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.PAYROLL_RECEIPTS, JSON.stringify(receipts));
+  } catch (e) {
+    console.error('Error saving payroll receipts:', e);
   }
 }
 
@@ -739,6 +929,32 @@ export function getBusinessProfile(): BusinessProfile {
       }
       if (parsed.nextQuoteSeq === undefined || parsed.nextQuoteSeq >= 100) {
         parsed.nextQuoteSeq = 0;
+        needsResave = true;
+      }
+
+      // Ensure IVA is mandatory by default and IGTF is enabled
+      if (parsed.enableTax === undefined || parsed.enableTax === false) {
+        parsed.enableTax = true;
+        needsResave = true;
+      }
+      if (!parsed.taxRatePercent) {
+        parsed.taxRatePercent = 16;
+        needsResave = true;
+      }
+      if (parsed.enableIGTF === undefined) {
+        parsed.enableIGTF = true;
+        needsResave = true;
+      }
+      if (!parsed.igtfRatePercent) {
+        parsed.igtfRatePercent = 3;
+        needsResave = true;
+      }
+      if (!parsed.defaultCestaticketUSD) {
+        parsed.defaultCestaticketUSD = 40;
+        needsResave = true;
+      }
+      if (!parsed.ivssRiskRatePercent) {
+        parsed.ivssRiskRatePercent = 9;
         needsResave = true;
       }
 
@@ -952,7 +1168,10 @@ export function exportAllDataJSON(): string {
     debts: getDebts(),
     expenses: getExpenses(),
     suppliers: getSuppliers(),
-    supplierDebts: getSupplierDebts()
+    supplierDebts: getSupplierDebts(),
+    employees: getEmployees(),
+    payrollPeriods: getPayrollPeriods(),
+    payrollReceipts: getPayrollReceipts()
   };
   return JSON.stringify(data, null, 2);
 }
@@ -972,6 +1191,9 @@ export function importAllDataJSON(jsonStr: string): boolean {
     if (parsed.expenses) saveExpenses(parsed.expenses);
     if (parsed.suppliers) saveSuppliers(parsed.suppliers);
     if (parsed.supplierDebts) saveSupplierDebts(parsed.supplierDebts);
+    if (parsed.employees) saveEmployees(parsed.employees);
+    if (parsed.payrollPeriods) savePayrollPeriods(parsed.payrollPeriods);
+    if (parsed.payrollReceipts) savePayrollReceipts(parsed.payrollReceipts);
     if (parsed.profile) saveBusinessProfile(parsed.profile);
     return true;
   } catch (err) {
@@ -1014,6 +1236,9 @@ export function resetToFactoryDefaults(): void {
     saveExpenses([]);         // Gastos a 0
     saveSuppliers([]);        // Proveedores a 0
     saveSupplierDebts([]);    // Deudas a 0
+    saveEmployees([]);        // Empleados a 0
+    savePayrollPeriods([]);   // Nóminas a 0
+    savePayrollReceipts([]);  // Recibos a 0
     saveBusinessProfile({
       ...DEFAULT_PROFILE,
       commercialName: 'Mi Comercio',
@@ -1032,5 +1257,6 @@ export {
   INITIAL_PRODUCTS, 
   INITIAL_CUSTOMERS, 
   INITIAL_SUPPLIERS, 
+  INITIAL_EMPLOYEES,
   DEFAULT_PROFILE 
 };

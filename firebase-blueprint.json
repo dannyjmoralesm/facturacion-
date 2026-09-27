@@ -158,6 +158,45 @@
         "rateDate": { "type": "string" }
       },
       "required": ["id"]
+    },
+    "Employee": {
+      "title": "Employee",
+      "description": "Trabajadores y nómina de la empresa según LOTTT",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "docType": { "type": "string" },
+        "docNumber": { "type": "string" },
+        "firstName": { "type": "string" },
+        "lastName": { "type": "string" },
+        "fullName": { "type": "string" },
+        "phone": { "type": "string" },
+        "position": { "type": "string" },
+        "department": { "type": "string" },
+        "hireDate": { "type": "string" },
+        "baseSalary": { "type": "number" },
+        "salaryCurrency": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "docNumber", "fullName", "baseSalary"]
+    },
+    "PayrollPeriod": {
+      "title": "PayrollPeriod",
+      "description": "Períodos y recibos de nómina integral",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "periodType": { "type": "string" },
+        "startDate": { "type": "string" },
+        "endDate": { "type": "string" },
+        "paymentDate": { "type": "string" },
+        "bcvRate": { "type": "number" },
+        "status": { "type": "string" },
+        "netPayUSD": { "type": "number" },
+        "netPayVES": { "type": "number" }
+      },
+      "required": ["id", "name", "paymentDate", "status"]
     }
   },
   "firestore": {
@@ -196,6 +235,14 @@
     "/settings/{settingsId}": {
       "schema": "SystemSettings",
       "description": "Configuración global de la tienda y tasa de cambio"
+    },
+    "/employees/{employeeId}": {
+      "schema": "Employee",
+      "description": "Fichas de empleados de la empresa"
+    },
+    "/payrollPeriods/{payrollPeriodId}": {
+      "schema": "PayrollPeriod",
+      "description": "Períodos y recibos de nómina de los empleados"
     }
   }
 }

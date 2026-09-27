@@ -120,7 +120,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
             <div>
               <h2 className="font-bold text-base text-white">Comprobante de Venta Emitido</h2>
               <p className="text-xs text-slate-400 font-mono">
-                {sale.invoiceNumber} | Control: {sale.controlNumber}
+                {sale.invoiceNumber} · Factura Fiscal en Bolívares
               </p>
             </div>
           </div>

@@ -75,7 +75,13 @@ import {
   firestoreDeleteExpense,
   firestoreSaveSupplier,
   firestoreSaveSupplierDebt,
-  firestoreSaveSettings
+  firestoreSaveSettings,
+  subscribeEmployees,
+  subscribePayrollPeriods,
+  firestoreSaveEmployee,
+  firestoreDeleteEmployee,
+  firestoreSavePayrollPeriod,
+  firestoreDeletePayrollPeriod
 } from './services/firestoreSync';
 import { 
   OfflineIndicator 
@@ -99,8 +105,14 @@ import {
   Expense,
   Supplier,
   SupplierDebt,
-  SupplierDebtInstallment
+  SupplierDebtInstallment,
+  Employee,
+  PayrollPeriod,
+  PayrollReceipt
 } from './types';
+import { CustomerManager } from './components/Customers/CustomerManager';
+import { PayrollManager } from './components/Payroll/PayrollManager';
+import { OperationsManualModal } from './components/Manual/OperationsManualModal';
 
 import { 
   getProducts, 
@@ -128,7 +140,11 @@ import {
   getSuppliers,
   saveSuppliers,
   getSupplierDebts,
-  saveSupplierDebts
+  saveSupplierDebts,
+  getEmployees,
+  saveEmployees,
+  getPayrollPeriods,
+  savePayrollPeriods
 } from './utils/storage';
 
 import { 
@@ -147,7 +163,7 @@ export default function App() {
   const [userSwitchPendingAction, setUserSwitchPendingAction] = useState<(() => void) | null>(null);
 
   // Navigation & View
-  const [currentView, setCurrentView] = useState<'pos' | 'quotes' | 'inventory' | 'debts' | 'sales' | 'finance'>('pos');
+  const [currentView, setCurrentView] = useState<'pos' | 'quotes' | 'inventory' | 'debts' | 'sales' | 'finance' | 'customers' | 'payroll'>('pos');
   const [userRole, setUserRole] = useState<UserRole>(() => getCurrentUser().role || getUserRole());
 
   // BCV Rate state
@@ -167,6 +183,9 @@ export default function App() {
   const [expenses, setExpenses] = useState<Expense[]>(() => getExpenses());
   const [suppliers, setSuppliers] = useState<Supplier[]>(() => getSuppliers());
   const [supplierDebts, setSupplierDebts] = useState<SupplierDebt[]>(() => getSupplierDebts());
+  const [employees, setEmployees] = useState<Employee[]>(() => getEmployees());
+  const [payrollPeriods, setPayrollPeriods] = useState<PayrollPeriod[]>(() => getPayrollPeriods());
+  const [isManualOpen, setIsManualOpen] = useState<boolean>(false);
 
   // Active shift
   const [activeShift, setActiveShift] = useState<CashShift | null>(() => {
@@ -222,6 +241,8 @@ export default function App() {
     const exp = getExpenses();
     const sup = getSuppliers();
     const sDebts = getSupplierDebts();
+    const emps = getEmployees();
+    const periods = getPayrollPeriods();
 
     setUsers(u);
     setCurrentUser(curU);
@@ -236,6 +257,8 @@ export default function App() {
     setExpenses(exp);
     setSuppliers(sup);
     setSupplierDebts(sDebts);
+    setEmployees(emps);
+    setPayrollPeriods(periods);
 
     // Find if there is an open shift
     const openShift = sh.find(item => item.status === 'open') || null;
@@ -473,6 +496,16 @@ export default function App() {
       saveSupplierDebts(updatedSupplierDebts);
     });
 
+    const unsubEmployees = subscribeEmployees((updatedEmployees) => {
+      setEmployees(updatedEmployees);
+      saveEmployees(updatedEmployees);
+    });
+
+    const unsubPayroll = subscribePayrollPeriods((updatedPayroll) => {
+      setPayrollPeriods(updatedPayroll);
+      savePayrollPeriods(updatedPayroll);
+    });
+
     const unsubSettings = subscribeGlobalSettings((settings) => {
       if (settings.profile) {
         const p: BusinessProfile = { ...settings.profile };
@@ -544,6 +577,8 @@ export default function App() {
       unsubExpenses();
       unsubSuppliers();
       unsubSupplierDebts();
+      unsubEmployees();
+      unsubPayroll();
       unsubSettings();
       unsubscribeWs();
     };
@@ -624,15 +659,78 @@ export default function App() {
   };
 
   // Safe Navigation with RBAC
-  const handleNavigate = (view: 'pos' | 'quotes' | 'inventory' | 'debts' | 'sales' | 'finance') => {
-    if (view === 'finance' && currentUser.role === 'seller') {
+  const handleNavigate = (view: 'pos' | 'quotes' | 'inventory' | 'debts' | 'sales' | 'finance' | 'customers' | 'payroll') => {
+    if ((view === 'finance' || view === 'payroll') && currentUser.role === 'seller') {
       // Prompt admin auth
       setUserSwitchRoleRequired('admin');
-      setUserSwitchPendingAction(() => () => setCurrentView('finance'));
+      setUserSwitchPendingAction(() => () => setCurrentView(view));
       setIsUserSwitchOpen(true);
       return;
     }
     setCurrentView(view);
+  };
+
+  // Handle Customers CRUD
+  const handleSaveCustomer = (cust: Customer) => {
+    const exists = customers.some(c => c.id === cust.id);
+    const updated = exists 
+      ? customers.map(c => c.id === cust.id ? cust : c)
+      : [cust, ...customers];
+    setCustomers(updated);
+    saveCustomers(updated);
+    realtimeSync.broadcastMutation('customers', exists ? 'UPDATE' : 'CREATE', cust);
+    firestoreSaveCustomer(cust).catch(err => console.error('Firestore save customer error:', err));
+  };
+
+  const handleDeleteCustomer = (custId: string) => {
+    const updated = customers.filter(c => c.id !== custId);
+    setCustomers(updated);
+    saveCustomers(updated);
+    realtimeSync.broadcastMutation('customers', 'DELETE', { id: custId });
+    firestoreDeleteCustomer(custId).catch(err => console.error('Firestore delete customer error:', err));
+  };
+
+  // Handle Employee & Payroll CRUD
+  const handleSaveEmployee = (emp: Employee) => {
+    const exists = employees.some(e => e.id === emp.id);
+    const updated = exists 
+      ? employees.map(e => e.id === emp.id ? emp : e)
+      : [emp, ...employees];
+    setEmployees(updated);
+    saveEmployees(updated);
+    realtimeSync.broadcastMutation('employees' as any, exists ? 'UPDATE' : 'CREATE', emp);
+    firestoreSaveEmployee(emp).catch(err => console.error('Firestore save employee error:', err));
+  };
+
+  const handleDeleteEmployee = (empId: string) => {
+    const updated = employees.filter(e => e.id !== empId);
+    setEmployees(updated);
+    saveEmployees(updated);
+    realtimeSync.broadcastMutation('employees' as any, 'DELETE', { id: empId });
+    firestoreDeleteEmployee(empId).catch(err => console.error('Firestore delete employee error:', err));
+  };
+
+  const handleSavePayrollPeriod = (period: PayrollPeriod) => {
+    const exists = payrollPeriods.some(p => p.id === period.id);
+    const updated = exists
+      ? payrollPeriods.map(p => p.id === period.id ? period : p)
+      : [period, ...payrollPeriods];
+    setPayrollPeriods(updated);
+    savePayrollPeriods(updated);
+    realtimeSync.broadcastMutation('payrollPeriods' as any, exists ? 'UPDATE' : 'CREATE', period);
+    firestoreSavePayrollPeriod(period).catch(err => console.error('Firestore save payroll period error:', err));
+  };
+
+  const handleDeletePayrollPeriod = (periodId: string) => {
+    const updated = payrollPeriods.filter(p => p.id !== periodId);
+    setPayrollPeriods(updated);
+    savePayrollPeriods(updated);
+    realtimeSync.broadcastMutation('payrollPeriods' as any, 'DELETE', { id: periodId });
+    firestoreDeletePayrollPeriod(periodId).catch(err => console.error('Firestore delete payroll period error:', err));
+  };
+
+  const handleRegisterPayrollExpense = (expense: Expense) => {
+    handleSaveExpense(expense);
   };
 
   // Handle Legacy Role Toggle
@@ -664,6 +762,9 @@ export default function App() {
       subtotalUSD: number;
       discountUSD: number;
       taxUSD: number;
+      taxRatePercent?: number;
+      igtfUSD?: number;
+      igtfVES?: number;
       totalUSD: number;
       totalVES: number;
       creditAmountUSD: number;
@@ -686,6 +787,7 @@ export default function App() {
       phone: '',
       email: '',
       address: 'Mostrador',
+      direccionFiscal: 'Av. Principal, Local Comercial',
       totalDebtUSD: 0,
       createdAt: new Date().toISOString()
     };
@@ -693,29 +795,29 @@ export default function App() {
     const nextInvoiceSeq = (profile?.nextInvoiceSeq !== undefined && !isNaN(Number(profile.nextInvoiceSeq))) 
       ? Number(profile.nextInvoiceSeq) 
       : 0;
-    const nextControlSeq = (profile?.nextControlSeq !== undefined && !isNaN(Number(profile.nextControlSeq))) 
-      ? Number(profile.nextControlSeq) 
-      : 0;
 
     const invoiceNumber = `${profile?.invoicePrefix || 'FACT-'}${nextInvoiceSeq.toString().padStart(6, '0')}`;
-    const controlNumber = `${profile?.controlPrefix || '00-'}${nextControlSeq.toString().padStart(6, '0')}`;
 
     const newSale: Sale = {
       id: `sale-${Date.now()}`,
       invoiceNumber,
-      controlNumber,
       date: new Date().toISOString(),
       customerId: finalCustomer.id,
       customerName: finalCustomer.name || 'Consumidor Final',
       customerDoc: `${finalCustomer.docType || 'V'}-${finalCustomer.docNumber || '00000000'}`,
       customerPhone: finalCustomer.phone || '',
+      customerAddress: finalCustomer.address || finalCustomer.direccionFiscal || 'Mostrador',
+      customerFiscalAddress: finalCustomer.direccionFiscal || finalCustomer.address || 'Mostrador',
       items: itemsToCharge,
       subtotalUSD: totals.subtotalUSD,
       discountUSD: totals.discountUSD,
-      taxUSD: totals.taxUSD,
+      taxUSD: totals.taxUSD || 0,
+      taxVES: totals.taxUSD ? totals.taxUSD * bcvRate : 0,
+      taxRatePercent: totals.taxRatePercent || 16,
+      igtfUSD: totals.igtfUSD || 0,
+      igtfVES: totals.igtfVES || (totals.igtfUSD ? totals.igtfUSD * bcvRate : 0),
       totalUSD: totals.totalUSD,
       subtotalVES: totals.subtotalUSD * bcvRate,
-      taxVES: totals.taxUSD * bcvRate,
       totalVES: totals.totalVES,
       bcvRate,
       payments,
@@ -825,8 +927,7 @@ export default function App() {
     // 5. Increment Profile sequence
     const updatedProfile: BusinessProfile = {
       ...profile,
-      nextInvoiceSeq: nextInvoiceSeq + 1,
-      nextControlSeq: nextControlSeq + 1
+      nextInvoiceSeq: nextInvoiceSeq + 1
     };
     setProfile(updatedProfile);
     saveBusinessProfile(updatedProfile);
@@ -1326,12 +1427,14 @@ export default function App() {
         onOpenArchitecture={() => setIsArchitectureOpen(true)}
         onOpenPWAInstall={() => setIsPWAInstallOpen(true)}
         onOpenSyncModal={() => setIsSyncModalOpen(true)}
+        onOpenManual={() => setIsManualOpen(true)}
         syncStatus={syncStatus}
         syncConnectedCount={syncConnectedCount}
         activeShift={activeShift}
         lowStockCount={products.filter(p => p.stock <= p.minStock).length}
         pendingDebtsCount={debts.filter(d => d.status !== 'paid').length}
         pendingPayablesCount={supplierDebts.filter(d => d.status !== 'paid').length}
+        totalCustomersCount={customers.length}
       />
 
       {/* Main View Router */}
@@ -1346,6 +1449,7 @@ export default function App() {
             saleCompletedTrigger={saleCompletedTrigger}
             onOpenCheckout={handleOpenCheckout}
             onQuickAddCustomer={handleQuickAddCustomer}
+            onNavigateToCustomers={() => setCurrentView('customers')}
           />
         )}
 
@@ -1374,6 +1478,41 @@ export default function App() {
               onSaveProduct={handleSaveProduct}
               onDeleteProduct={handleDeleteProduct}
               onClearAllProducts={handleClearAllProducts}
+            />
+          </div>
+        )}
+
+        {currentView === 'customers' && (
+          <div className="flex-1 overflow-y-auto">
+            <CustomerManager
+              customers={customers}
+              bcvRate={bcvRate}
+              profile={profile}
+              onSaveCustomer={handleSaveCustomer}
+              onDeleteCustomer={handleDeleteCustomer}
+              onSelectCustomerForPOS={(customer) => {
+                setCheckoutCustomer(customer);
+                setCurrentView('pos');
+              }}
+              onOpenCustomerDebts={() => {
+                setCurrentView('debts');
+              }}
+            />
+          </div>
+        )}
+
+        {currentView === 'payroll' && (
+          <div className="flex-1 overflow-y-auto">
+            <PayrollManager
+              employees={employees}
+              payrollPeriods={payrollPeriods}
+              bcvRate={bcvRate}
+              profile={profile}
+              onSaveEmployee={handleSaveEmployee}
+              onDeleteEmployee={handleDeleteEmployee}
+              onSavePayrollPeriod={handleSavePayrollPeriod}
+              onDeletePayrollPeriod={handleDeletePayrollPeriod}
+              onRegisterPayrollExpense={handleRegisterPayrollExpense}
             />
           </div>
         )}
@@ -1546,6 +1685,14 @@ export default function App() {
           onForceSyncUpload={handleForceSyncUpload}
         />
       )}
+
+      {/* Modal 9: Official Operations, Tax & Payroll Manual */}
+      <OperationsManualModal
+        isOpen={isManualOpen}
+        onClose={() => setIsManualOpen(false)}
+        profile={profile}
+        bcvRate={bcvRate}
+      />
 
       {/* Floating Live Sync Toast Notification */}
       {syncToastMessage && (

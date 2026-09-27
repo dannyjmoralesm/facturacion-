@@ -49,8 +49,11 @@ export interface Customer {
   phone: string;
   email?: string;
   address?: string;
+  direccionFiscal?: string; // Dirección Fiscal para emisión de facturas legales
+  creditLimitUSD?: number;
   totalDebtUSD: number;
   createdAt: string;
+  notes?: string;
 }
 
 export type PaymentMethodType = 
@@ -72,6 +75,10 @@ export interface PaymentSplit {
   bank?: string;
   senderPhone?: string;
   notes?: string;
+  isForeignCurrency?: boolean;
+  igtfApplicable?: boolean;
+  igtfAmountUSD?: number;
+  igtfAmountVES?: number;
 }
 
 export type PaymentRecord = PaymentSplit;
@@ -106,19 +113,24 @@ export type SaleStatus = 'completed' | 'cancelled' | 'credit_pending';
 export interface Sale {
   id: string;
   invoiceNumber: string; // e.g. FACT-000142
-  controlNumber: string; // e.g. 00-001284
+  controlNumber?: string; // Opcional (eliminado de visualización e impresión)
   date: string;
   customerId: string;
   customerName: string;
   customerDoc: string;
   customerPhone?: string;
+  customerAddress?: string;
+  customerFiscalAddress?: string;
   items: CartItem[];
-  subtotalUSD: number;
+  subtotalUSD: number; // Base Imponible (Gravable)
   discountUSD: number;
-  taxUSD: number;
+  taxUSD: number; // IVA Obligatorio (16%)
+  taxRatePercent?: number; // 16%
+  igtfUSD?: number; // IGTF (3% Divisas)
   totalUSD: number;
-  subtotalVES: number;
-  taxVES: number;
+  subtotalVES: number; // Base Imponible en Bs.
+  taxVES: number; // IVA Obligatorio en Bs.
+  igtfVES?: number; // IGTF en Bs.
   totalVES: number;
   bcvRate: number;
   payments: PaymentSplit[];
@@ -240,8 +252,12 @@ export interface BusinessProfile {
   binancePayId: string;
   defaultThermalSize: '58mm' | '80mm';
   footerMessage: string;
-  enableTax: boolean;
-  taxRatePercent: number; // default 16% (IVA in Venezuela)
+  enableTax: boolean; // IVA Obligatorio por ley
+  taxRatePercent: number; // default 16% (IVA estándar en Venezuela)
+  enableIGTF: boolean; // Impuesto a las Grandes Transacciones Financieras
+  igtfRatePercent: number; // 3% sobre divisas en efectivo/zelle/binance
+  defaultCestaticketUSD: number; // Cestaticket de ley ($40 indexado o configurable)
+  ivssRiskRatePercent: number; // IVSS Aporte Patronal: 9% (mínimo), 10% (medio), 11% (máximo)
 }
 
 export type UserRole = 'admin' | 'seller' | 'cashier';
@@ -336,4 +352,116 @@ export interface SupplierDebt {
   status: 'pending' | 'partially_paid' | 'paid';
   installments: SupplierDebtInstallment[];
   notes?: string;
+}
+
+// ==========================================
+// MÓDULO DE NÓMINA INTEGRAL BIMONEDA (LOTTT)
+// ==========================================
+
+export type EmployeeContractType = 'indefinido' | 'determinado' | 'servicios_profesionales' | 'pasantia';
+export type EmployeeStatus = 'active' | 'vacation' | 'leave' | 'inactive';
+
+export interface Employee {
+  id: string;
+  docType: DocumentType;
+  docNumber: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  email?: string;
+  phone: string;
+  position: string; // Cargo (e.g. Gerente de Ventas, Cajero, Almacenista)
+  department: string; // Departamento (Ventas, Administración, Operaciones)
+  hireDate: string; // Fecha de ingreso para cálculo de antigüedad
+  contractType: EmployeeContractType;
+  salaryCurrency: Currency; // 'USD' o 'VES'
+  baseSalary: number; // Salario mensual pactado
+  hasCestaticket: boolean; // Si aplica bono de alimentación
+  customCestaticketUSD?: number; // Cestaticket personalizado o $40 legal
+  productionBonusUSD?: number; // Bono de productividad / compensatorio en divisas
+  bankName?: string; // Banco para nómina
+  bankAccountNumber?: string; // Cuenta 20 dígitos
+  pagoMovilPhone?: string;
+  status: EmployeeStatus;
+  address?: string;
+  notes?: string;
+  createdAt: string;
+}
+
+export type PayrollPeriodType = '1ra_quincena' | '2da_quincena' | 'mensual' | 'semanal';
+export type PayrollStatus = 'draft' | 'approved' | 'paid';
+
+export interface PayrollReceiptConcept {
+  id: string;
+  code: string; // e.g. "001", "002", "D01", "D02"
+  name: string; // e.g. "Sueldo Básico Quincenal", "Cestaticket Socialista", "Retención IVSS 4%"
+  type: 'earning' | 'deduction';
+  amountUSD: number;
+  amountVES: number;
+  rateApplied?: number;
+  quantity?: number; // Horas, Días o %
+  unitLabel?: string; // "Días", "Horas", "%"
+  notes?: string;
+}
+
+export interface PayrollEmployerContribution {
+  code: string;
+  name: string; // e.g. "Aporte Patronal IVSS", "Aporte Patronal FAOV", "Aporte Patronal RPE"
+  percentage: number;
+  amountUSD: number;
+  amountVES: number;
+}
+
+export interface PayrollReceipt {
+  id: string;
+  payrollPeriodId: string;
+  employeeId: string;
+  employeeDoc: string;
+  employeeName: string;
+  employeePosition: string;
+  employeeDepartment: string;
+  hireDate: string;
+  bcvRate: number;
+  periodName: string;
+  paymentDate: string;
+  daysWorked: number;
+  concepts: PayrollReceiptConcept[];
+  totalEarningsUSD: number;
+  totalEarningsVES: number;
+  totalDeductionsUSD: number;
+  totalDeductionsVES: number;
+  netPayUSD: number;
+  netPayVES: number;
+  employerContributions: PayrollEmployerContribution[];
+  status: 'pending' | 'paid';
+  paymentMethod?: PaymentMethodType;
+  paymentReference?: string;
+  bankName?: string;
+  accountNumber?: string;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface PayrollPeriod {
+  id: string;
+  name: string; // e.g. "1ra Quincena Octubre 2026"
+  periodType: PayrollPeriodType;
+  month: number;
+  year: number;
+  startDate: string;
+  endDate: string;
+  paymentDate: string;
+  bcvRate: number;
+  status: PayrollStatus;
+  receiptsCount: number;
+  totalEarningsUSD: number;
+  totalEarningsVES: number;
+  totalDeductionsUSD: number;
+  totalDeductionsVES: number;
+  netPayUSD: number;
+  netPayVES: number;
+  totalEmployerCostUSD: number;
+  totalEmployerCostVES: number;
+  createdAt: string;
+  receipts?: PayrollReceipt[];
 }

@@ -9,10 +9,13 @@ export function createWhatsAppSaleMessage(sale: Sale, profile: BusinessProfile):
   if (profile?.address) lines.push(`📍 ${profile.address}`);
   lines.push(`--------------------------------`);
   lines.push(`📄 *Comprobante:* ${sale.invoiceNumber}`);
-  lines.push(`🔢 *Nro. Control:* ${sale.controlNumber}`);
   lines.push(`📅 *Fecha:* ${formatShortDate(sale.date)}`);
   lines.push(`👤 *Cliente:* ${sale.customerName} (${sale.customerDoc})`);
-  const saleRate = (sale.bcvRate && sale.bcvRate > 0) ? sale.bcvRate : 86.45;
+  const clientAddr = sale.customerFiscalAddress || sale.customerAddress;
+  if (clientAddr) {
+    lines.push(`📍 *Dir. Fiscal:* ${clientAddr}`);
+  }
+  const saleRate = (sale.bcvRate && sale.bcvRate > 0) ? sale.bcvRate : 813.74;
   lines.push(`💵 *Tasa BCV:* ${saleRate.toFixed(2)} Bs/$`);
   lines.push(`--------------------------------`);
   lines.push(`🛒 *DETALLE DE COMPRA:*`);
@@ -20,17 +23,21 @@ export function createWhatsAppSaleMessage(sale: Sale, profile: BusinessProfile):
   sale.items.forEach(item => {
     const vText = item.variantName ? ` (${item.variantName})` : '';
     lines.push(`▫️ ${item.quantity} ${item.unit} x ${item.productName}${vText}`);
-    lines.push(`   ↳ ${formatUSD(item.subtotalUSD)} / ${formatVES(item.subtotalVES)}`);
+    lines.push(`   ↳ ${formatVES(item.subtotalVES)} (${formatUSD(item.subtotalUSD)})`);
   });
 
   lines.push(`--------------------------------`);
+  lines.push(`📦 *Base Imponible:* ${formatVES(sale.subtotalVES)} (${formatUSD(sale.subtotalUSD)})`);
   if (sale.discountUSD > 0) {
-    lines.push(`📦 *Subtotal USD:* ${formatUSD(sale.subtotalUSD)}`);
-    lines.push(`🏷️ *Descuento Aplicado:* -${formatUSD(sale.discountUSD)} (-${formatVES(sale.discountUSD * saleRate)})`);
-    lines.push(`--------------------------------`);
+    lines.push(`🏷️ *Descuento:* -${formatVES(sale.discountUSD * saleRate)} (-${formatUSD(sale.discountUSD)})`);
   }
-  lines.push(`💰 *TOTAL USD:* ${formatUSD(sale.totalUSD)}`);
-  lines.push(`🇻🇪 *TOTAL BOLÍVARES:* ${formatVES(sale.totalVES)}`);
+  lines.push(`🏛️ *IVA (16%):* ${formatVES(sale.taxVES)} (${formatUSD(sale.taxUSD)})`);
+  if (sale.igtfVES && sale.igtfVES > 0) {
+    lines.push(`💳 *IGTF Divisas (3%):* +${formatVES(sale.igtfVES)} (+${formatUSD(sale.igtfUSD || 0)})`);
+  }
+  lines.push(`--------------------------------`);
+  lines.push(`🇻🇪 *TOTAL FACTURA (BS):* ${formatVES(sale.totalVES)}`);
+  lines.push(`💵 *TOTAL REF. ($):* ${formatUSD(sale.totalUSD)}`);
   lines.push(`--------------------------------`);
   lines.push(`💳 *FORMA DE PAGO:*`);
 

@@ -20,12 +20,16 @@ import {
   Expense, 
   Supplier, 
   SupplierDebt, 
-  BusinessProfile 
+  BusinessProfile,
+  Employee,
+  PayrollPeriod,
+  PayrollReceipt
 } from '../types';
 import { 
   INITIAL_PRODUCTS, 
   INITIAL_CUSTOMERS, 
   INITIAL_SUPPLIERS, 
+  INITIAL_EMPLOYEES,
   DEFAULT_PROFILE 
 } from '../utils/storage';
 
@@ -307,6 +311,50 @@ export function subscribeSupplierDebts(onData: (debts: SupplierDebt[]) => void, 
   );
 }
 
+export function subscribeEmployees(
+  onData: (employees: Employee[]) => void,
+  onError?: (err: any) => void
+): Unsubscribe {
+  if (!db) return () => {};
+  return onSnapshot(
+    collection(db, 'employees'),
+    (snap) => {
+      const items: Employee[] = [];
+      snap.forEach((d) => {
+        items.push({ ...(d.data() as Employee), id: d.id });
+      });
+      items.sort((a, b) => a.fullName.localeCompare(b.fullName));
+      onData(items);
+    },
+    (err) => {
+      console.error('Firestore employees listener error:', err);
+      if (onError) onError(err);
+    }
+  );
+}
+
+export function subscribePayrollPeriods(
+  onData: (periods: PayrollPeriod[]) => void,
+  onError?: (err: any) => void
+): Unsubscribe {
+  if (!db) return () => {};
+  return onSnapshot(
+    collection(db, 'payrollPeriods'),
+    (snap) => {
+      const items: PayrollPeriod[] = [];
+      snap.forEach((d) => {
+        items.push({ ...(d.data() as PayrollPeriod), id: d.id });
+      });
+      items.sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime());
+      onData(items);
+    },
+    (err) => {
+      console.error('Firestore payrollPeriods listener error:', err);
+      if (onError) onError(err);
+    }
+  );
+}
+
 export function subscribeGlobalSettings(
   onData: (settings: { profile?: BusinessProfile; bcvRate?: number; rateDate?: string }) => void,
   onError?: (err: any) => void
@@ -429,6 +477,30 @@ export async function firestoreSaveSupplierDebt(debt: SupplierDebt): Promise<voi
   await setDoc(ref, cleanForFirestore(debt));
 }
 
+export async function firestoreSaveEmployee(employee: Employee): Promise<void> {
+  if (!db) return;
+  const ref = doc(db, 'employees', employee.id);
+  await setDoc(ref, cleanForFirestore(employee));
+}
+
+export async function firestoreDeleteEmployee(employeeId: string): Promise<void> {
+  if (!db) return;
+  const ref = doc(db, 'employees', employeeId);
+  await deleteDoc(ref);
+}
+
+export async function firestoreSavePayrollPeriod(period: PayrollPeriod): Promise<void> {
+  if (!db) return;
+  const ref = doc(db, 'payrollPeriods', period.id);
+  await setDoc(ref, cleanForFirestore(period));
+}
+
+export async function firestoreDeletePayrollPeriod(periodId: string): Promise<void> {
+  if (!db) return;
+  const ref = doc(db, 'payrollPeriods', periodId);
+  await deleteDoc(ref);
+}
+
 export async function firestoreSaveSettings(settings: { profile?: BusinessProfile; bcvRate?: number; rateDate?: string }): Promise<void> {
   if (!db) return;
   const ref = doc(db, 'settings', 'global');
@@ -449,7 +521,9 @@ export async function firestoreResetAllData(): Promise<void> {
       'shifts',
       'expenses',
       'suppliers',
-      'supplierDebts'
+      'supplierDebts',
+      'employees',
+      'payrollPeriods'
     ];
 
     for (const colName of collectionsToClear) {

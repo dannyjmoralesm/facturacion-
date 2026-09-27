@@ -61,7 +61,6 @@ export const SalesHistory: React.FC<SalesHistoryProps> = ({
     const matchesSearch = 
       !query ||
       s.invoiceNumber.toLowerCase().includes(query) ||
-      s.controlNumber.toLowerCase().includes(query) ||
       s.customerName.toLowerCase().includes(query) ||
       s.customerDoc.toLowerCase().includes(query);
 
@@ -194,7 +193,6 @@ export const SalesHistory: React.FC<SalesHistoryProps> = ({
                   <tr key={sale.id} className="hover:bg-slate-850 transition">
                     <td className="p-3.5 font-mono">
                       <div className="font-bold text-white text-sm">{sale.invoiceNumber}</div>
-                      <div className="text-[10px] text-slate-400">Ctrl: {sale.controlNumber}</div>
                       <div className="text-[10px] text-slate-500 mt-0.5">{formatShortDate(sale.date)}</div>
                     </td>
 

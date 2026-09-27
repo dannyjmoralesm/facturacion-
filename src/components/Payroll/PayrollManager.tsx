@@ -701,33 +701,25 @@ export const PayrollManager: React.FC<PayrollManagerProps> = ({
   };
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 text-slate-100 animate-in fade-in">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-5 text-slate-100">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-2.5">
-          <span className="p-2 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30">
-            <Briefcase className="w-6 h-6" />
-          </span>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-black text-white tracking-wide flex items-center gap-2">
-              <span>Nómina Integral Bimoneda (Bs / $)</span>
-              <span className="text-xs bg-purple-500/20 text-purple-300 font-bold px-2 py-0.5 rounded-full border border-purple-500/30">
-                LOTTT Legal
-              </span>
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
-              Cálculo formal quincenal y mensual, Cestaticket, IVSS 4%, FAOV 1%, RPE 0.5% y aportes patronales
-            </p>
-          </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-800/80">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+            Nómina Integral Bimoneda
+          </h1>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Cálculo formal quincenal y mensual según LOTTT: Cestaticket, IVSS 4%, FAOV 1%, RPE 0.5% y cargas patronales.
+          </p>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
             onClick={handleOpenCreateEmployee}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold border border-slate-700 transition"
+            className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-750 text-slate-200 rounded-xl text-xs font-medium border border-slate-700 transition"
           >
-            <Plus className="w-4 h-4 text-purple-400" />
+            <Plus className="w-3.5 h-3.5 text-emerald-400" />
             <span>Ficha de Empleado</span>
           </button>
 
@@ -735,121 +727,101 @@ export const PayrollManager: React.FC<PayrollManagerProps> = ({
             id="btn-process-payroll"
             type="button"
             onClick={() => setIsProcessPayrollModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-purple-950/60 transition active:scale-95"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-medium shadow-sm transition active:scale-95"
           >
-            <Calculator className="w-4 h-4" />
-            <span>Procesar Nómina de Período</span>
+            <Calculator className="w-3.5 h-3.5" />
+            <span>Procesar Nómina</span>
           </button>
         </div>
       </div>
 
       {/* Metrics Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex items-center gap-3">
-          <div className="p-3 bg-purple-500/10 text-purple-400 rounded-xl border border-purple-500/20">
-            <Users className="w-5 h-5" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-xl">
+          <div className="text-xs text-slate-400 font-medium mb-1">Nómina Activa</div>
+          <div className="text-xl font-bold text-white font-mono tabular-nums">{summaryMetrics.activeStaff}</div>
+          <div className="text-[11px] text-slate-500 mt-0.5">De {summaryMetrics.totalStaff} trabajadores registrados</div>
+        </div>
+
+        <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-xl">
+          <div className="text-xs text-slate-400 font-medium mb-1">Costo Mensual Estimado</div>
+          <div className="text-xl font-bold font-mono tabular-nums text-white">
+            {formatUSD(summaryMetrics.totalMonthlyPayrollUSD)}
           </div>
-          <div>
-            <div className="text-xs text-slate-400 font-semibold">Nómina Activa</div>
-            <div className="text-xl font-black text-white">{summaryMetrics.activeStaff} Trabajadores</div>
-            <div className="text-[10px] text-slate-400">Total registrados: {summaryMetrics.totalStaff}</div>
+          <div className="text-[11px] text-slate-400 font-mono tabular-nums mt-0.5">
+            {formatVES(summaryMetrics.totalMonthlyPayrollVES)}
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex items-center gap-3">
-          <div className="p-3 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
-            <DollarSign className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-xs text-slate-400 font-semibold">Costo Mensual Estimado</div>
-            <div className="text-lg font-black font-mono text-emerald-400">
-              {formatUSD(summaryMetrics.totalMonthlyPayrollUSD)}
-            </div>
-            <div className="text-[10px] text-slate-400 font-mono">
-              {formatVES(summaryMetrics.totalMonthlyPayrollVES)}
-            </div>
-          </div>
+        <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-xl">
+          <div className="text-xs text-slate-400 font-medium mb-1">Deducciones de Ley</div>
+          <div className="text-sm font-semibold text-slate-200 mt-0.5">IVSS 4% · FAOV 1%</div>
+          <div className="text-[11px] text-slate-500 mt-0.5">Paro Forzoso RPE 0.5%</div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex items-center gap-3">
-          <div className="p-3 bg-blue-500/10 text-blue-400 rounded-xl border border-blue-500/20">
-            <ShieldCheck className="w-5 h-5" />
+        <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-xl">
+          <div className="text-xs text-slate-400 font-medium mb-1">Cestaticket de Ley</div>
+          <div className="text-sm font-bold text-slate-200 font-mono tabular-nums mt-0.5">
+            {formatUSD(profile.defaultCestaticketUSD || 40)} / mes
           </div>
-          <div>
-            <div className="text-xs text-slate-400 font-semibold">Deducciones de Ley</div>
-            <div className="text-sm font-bold text-slate-200">IVSS 4% · FAOV 1%</div>
-            <div className="text-[10px] text-slate-400">Paro Forzoso RPE 0.5%</div>
-          </div>
-        </div>
-
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex items-center gap-3">
-          <div className="p-3 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20">
-            <Coins className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-xs text-slate-400 font-semibold">Cestaticket de Ley</div>
-            <div className="text-sm font-bold text-amber-400 font-mono">
-              {formatUSD(profile.defaultCestaticketUSD || 40)} / mes
-            </div>
-            <div className="text-[10px] text-slate-400 font-mono">
-              {formatVES((profile.defaultCestaticketUSD || 40) * bcvRate)}
-            </div>
+          <div className="text-[11px] text-slate-400 font-mono tabular-nums mt-0.5">
+            {formatVES((profile.defaultCestaticketUSD || 40) * bcvRate)}
           </div>
         </div>
       </div>
 
       {/* Navigation Sub-Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto text-xs font-bold">
+      <div className="flex items-center gap-1.5 bg-slate-950/80 p-1 rounded-xl border border-slate-800 overflow-x-auto scrollbar-none text-xs">
         <button
           type="button"
           onClick={() => setActiveTab('periods')}
-          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition ${
             activeTab === 'periods'
-              ? 'bg-purple-600 text-white'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              ? 'bg-slate-800 text-white font-semibold border border-slate-750 shadow-xs'
+              : 'text-slate-400 hover:text-white'
           }`}
         >
-          <Calendar className="w-4 h-4" />
-          <span>Períodos de Nómina ({payrollPeriods.length})</span>
+          <Calendar className="w-3.5 h-3.5" />
+          <span>Períodos ({payrollPeriods.length})</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('employees')}
-          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition ${
             activeTab === 'employees'
-              ? 'bg-purple-600 text-white'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              ? 'bg-slate-800 text-white font-semibold border border-slate-750 shadow-xs'
+              : 'text-slate-400 hover:text-white'
           }`}
         >
-          <Users className="w-4 h-4" />
+          <Users className="w-3.5 h-3.5" />
           <span>Fichas de Trabajadores ({employees.length})</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('receipts')}
-          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition ${
             activeTab === 'receipts'
-              ? 'bg-purple-600 text-white'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              ? 'bg-slate-800 text-white font-semibold border border-slate-750 shadow-xs'
+              : 'text-slate-400 hover:text-white'
           }`}
         >
-          <FileText className="w-4 h-4" />
+          <FileText className="w-3.5 h-3.5" />
           <span>Recibos Individuales</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('employer_costs')}
-          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition ${
             activeTab === 'employer_costs'
-              ? 'bg-purple-600 text-white'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              ? 'bg-slate-800 text-white font-semibold border border-slate-750 shadow-xs'
+              : 'text-slate-400 hover:text-white'
           }`}
         >
-          <Percent className="w-4 h-4" />
-          <span>Aportes Patronales (Empresa)</span>
+          <Building2 className="w-3.5 h-3.5" />
+          <span>Cargas Patronales</span>
         </button>
       </div>
 

@@ -117,37 +117,32 @@ export const DebtsManager: React.FC<DebtsManagerProps> = ({
   };
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 text-slate-100">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-5 text-slate-100">
       {/* Header & KPI Card */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <span className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
-            <BookOpen className="w-6 h-6" />
-          </span>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-black text-white">Libreta de Fiados (Cuentas por Cobrar)</h1>
-            <p className="text-xs text-slate-400">
-              Deudas protegidas en USD contra la devaluación. Cobro exacto en Bs. según la tasa BCV del día del abono.
-            </p>
-          </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-800/80">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">Libreta de Fiados</h1>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Cuentas por cobrar en USD indexadas a la tasa BCV del día del abono.
+          </p>
         </div>
 
-        {/* Grand Total Pending Badge */}
-        <div className="bg-slate-900 border border-amber-500/30 p-3.5 rounded-2xl flex items-center gap-3">
+        {/* Grand Total Pending KPI */}
+        <div className="bg-slate-900/80 border border-slate-800 px-4 py-2 rounded-xl flex items-center gap-3">
           <div>
-            <div className="text-[10px] text-amber-400 uppercase font-bold">Total por Cobrar en la Calle</div>
-            <div className="text-lg sm:text-xl font-black text-white font-mono leading-none mt-0.5">
+            <div className="text-[10px] text-slate-400 font-medium uppercase">Total por Cobrar</div>
+            <div className="text-lg sm:text-xl font-bold text-white font-mono tabular-nums leading-none mt-0.5">
               {formatUSD(totalPendingUSD)}
             </div>
-            <div className="text-xs text-slate-400 font-mono mt-0.5">
-              Equiv. Hoy: {formatVES(totalPendingVES)}
+            <div className="text-xs text-slate-400 font-mono tabular-nums mt-0.5">
+              Equiv: {formatVES(totalPendingVES)}
             </div>
           </div>
         </div>
       </div>
 
       {/* Filter and Search */}
-      <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl flex flex-wrap items-center justify-between gap-3">
+      <div className="bg-slate-900/80 border border-slate-800 p-2.5 sm:p-3 rounded-xl flex flex-wrap items-center justify-between gap-2.5">
         <div className="relative flex-1 min-w-[240px]">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
@@ -155,31 +150,31 @@ export const DebtsManager: React.FC<DebtsManagerProps> = ({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por cliente, cédula o factura..."
-            className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+            className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-slate-700"
           />
         </div>
 
-        <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+        <div className="flex items-center bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
           <button
             onClick={() => setFilterStatus('pending')}
-            className={`px-3 py-1.5 rounded-lg font-semibold transition ${
-              filterStatus === 'pending' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'
+            className={`px-3 py-1.5 rounded-md font-medium transition ${
+              filterStatus === 'pending' ? 'bg-slate-800 text-white font-semibold' : 'text-slate-400 hover:text-white'
             }`}
           >
-            Pendientes / Por Cobrar
+            Pendientes
           </button>
           <button
             onClick={() => setFilterStatus('paid')}
-            className={`px-3 py-1.5 rounded-lg font-semibold transition ${
-              filterStatus === 'paid' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+            className={`px-3 py-1.5 rounded-md font-medium transition ${
+              filterStatus === 'paid' ? 'bg-slate-800 text-white font-semibold' : 'text-slate-400 hover:text-white'
             }`}
           >
             Saldadas
           </button>
           <button
             onClick={() => setFilterStatus('all')}
-            className={`px-3 py-1.5 rounded-lg font-semibold transition ${
-              filterStatus === 'all' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'
+            className={`px-3 py-1.5 rounded-md font-medium transition ${
+              filterStatus === 'all' ? 'bg-slate-800 text-white font-semibold' : 'text-slate-400 hover:text-white'
             }`}
           >
             Todas ({debts.length})
@@ -188,11 +183,11 @@ export const DebtsManager: React.FC<DebtsManagerProps> = ({
       </div>
 
       {/* Debts Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
         {filteredDebts.length === 0 ? (
           <div className="col-span-full py-16 text-center text-slate-500 bg-slate-900/50 rounded-2xl border border-dashed border-slate-800">
-            <BookOpen className="w-12 h-12 mx-auto mb-2 opacity-30" />
-            <p className="text-sm font-semibold">No hay deudas en esta vista</p>
+            <BookOpen className="w-10 h-10 mx-auto mb-2 opacity-30" />
+            <p className="text-sm font-medium">No hay cuentas por cobrar registradas en esta vista</p>
           </div>
         ) : (
           filteredDebts.map(debt => {
@@ -202,55 +197,58 @@ export const DebtsManager: React.FC<DebtsManagerProps> = ({
             return (
               <div
                 key={debt.id}
-                className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between hover:border-slate-700 transition"
+                className="bg-slate-900/80 border border-slate-800 rounded-xl p-4 flex flex-col justify-between hover:border-slate-750 transition"
               >
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-mono text-xs text-slate-400">
+                    <span className="font-mono tabular-nums text-xs text-slate-400">
                       Doc: <strong className="text-slate-200">{debt.invoiceNumber}</strong>
                     </span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                      isPaid 
-                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' 
-                        : debt.status === 'partially_paid' 
-                        ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' 
-                        : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                    }`}>
-                      {isPaid ? '✓ Pagado' : debt.status === 'partially_paid' ? 'Abonado' : '⏳ Pendiente'}
+                    <span className="text-xs font-medium">
+                      {isPaid ? (
+                        <span className="text-emerald-400 flex items-center gap-1">✓ Saldada</span>
+                      ) : debt.status === 'partially_paid' ? (
+                        <span className="text-sky-400">Abonada</span>
+                      ) : (
+                        <span className="text-amber-400 flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                          Pendiente
+                        </span>
+                      )}
                     </span>
                   </div>
 
                   <div className="mb-3">
-                    <div className="font-bold text-sm text-white truncate">{debt.customerName}</div>
-                    <div className="text-xs text-slate-400">{debt.customerDoc} | Tel: {debt.customerPhone || 'N/A'}</div>
+                    <div className="font-semibold text-sm text-white truncate">{debt.customerName}</div>
+                    <div className="text-xs text-slate-400 mt-0.5">{debt.customerDoc} · Tel: {debt.customerPhone || 'N/A'}</div>
                     <div className="text-[11px] text-slate-500 mt-1">
                       Fecha: {formatShortDate(debt.dateCreated)}
                     </div>
                   </div>
 
                   {/* Amounts Breakdown */}
-                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-850 space-y-2 mb-3">
+                  <div className="bg-slate-950/70 p-3 rounded-lg border border-slate-850 space-y-1.5 mb-3">
                     <div className="flex justify-between text-xs text-slate-400">
                       <span>Deuda Original:</span>
-                      <span className="font-mono text-slate-300">{formatUSD(debt.originalDebtUSD)}</span>
+                      <span className="font-mono tabular-nums text-slate-300">{formatUSD(debt.originalDebtUSD)}</span>
                     </div>
                     <div className="flex justify-between text-xs text-slate-400">
                       <span>Total Abonado:</span>
-                      <span className="font-mono text-emerald-400">{formatUSD(debt.paidDebtUSD)}</span>
+                      <span className="font-mono tabular-nums text-emerald-400">{formatUSD(debt.paidDebtUSD)}</span>
                     </div>
 
-                    <div className="h-px bg-slate-800" />
+                    <div className="h-px bg-slate-800/80" />
 
-                    <div className="flex items-end justify-between">
+                    <div className="flex items-end justify-between pt-0.5">
                       <div>
-                        <div className="text-[10px] text-slate-400 uppercase font-bold">Saldo Restante</div>
-                        <div className="text-lg font-black text-rose-400 font-mono">
+                        <div className="text-[10px] text-slate-500 uppercase font-medium">Saldo Restante</div>
+                        <div className="text-lg font-bold text-rose-400 font-mono tabular-nums">
                           {formatUSD(debt.remainingDebtUSD)}
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-[10px] text-slate-400">En Bs. a Tasa BCV ({(bcvRate || 86.45).toFixed(2)})</div>
-                        <div className="text-sm font-bold text-slate-200 font-mono">
+                        <div className="text-[10px] text-slate-500">Tasa {(bcvRate || 86.45).toFixed(2)} Bs/$</div>
+                        <div className="text-sm font-semibold text-slate-200 font-mono tabular-nums">
                           {formatVES(remainingVES)}
                         </div>
                       </div>

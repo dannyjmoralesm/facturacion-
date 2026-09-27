@@ -142,34 +142,27 @@ export const QuotesManager: React.FC<QuotesManagerProps> = ({
   };
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 text-slate-100">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-5 text-slate-100">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-800/80">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30">
-              <FileText className="w-6 h-6" />
-            </span>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-black text-white">Cotizaciones & Presupuestos</h1>
-              <p className="text-xs text-slate-400">
-                Emisión de cotizaciones formales bimoneda estilo Factiva con conversión a venta en 1-clic.
-              </p>
-            </div>
-          </div>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">Cotizaciones & Presupuestos</h1>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Emisión de presupuestos formales bimoneda con conversión directa a venta.
+          </p>
         </div>
 
         <button
           onClick={() => setIsNewQuoteOpen(true)}
-          className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-950 transition cursor-pointer"
+          className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm transition cursor-pointer"
         >
           <Plus className="w-4 h-4" />
-          <span>+ Nueva Cotización</span>
+          <span>Nueva Cotización</span>
         </button>
       </div>
 
       {/* Filters & Search */}
-      <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl flex flex-wrap items-center justify-between gap-3">
+      <div className="bg-slate-900/80 border border-slate-800 p-2.5 sm:p-3 rounded-xl flex flex-wrap items-center justify-between gap-2.5">
         <div className="relative flex-1 min-w-[240px]">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
@@ -177,31 +170,31 @@ export const QuotesManager: React.FC<QuotesManagerProps> = ({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por Nro. Cotización, Cliente o RIF..."
-            className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+            className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-slate-700"
           />
         </div>
 
-        <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+        <div className="flex items-center bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
           <button
             onClick={() => setFilterStatus('all')}
-            className={`px-3 py-1.5 rounded-lg font-semibold transition ${
-              filterStatus === 'all' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
+            className={`px-3 py-1.5 rounded-md font-medium transition ${
+              filterStatus === 'all' ? 'bg-slate-800 text-white font-semibold' : 'text-slate-400 hover:text-white'
             }`}
           >
             Todas ({quotes.length})
           </button>
           <button
             onClick={() => setFilterStatus('pending')}
-            className={`px-3 py-1.5 rounded-lg font-semibold transition ${
-              filterStatus === 'pending' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
+            className={`px-3 py-1.5 rounded-md font-medium transition ${
+              filterStatus === 'pending' ? 'bg-slate-800 text-white font-semibold' : 'text-slate-400 hover:text-white'
             }`}
           >
             Pendientes
           </button>
           <button
             onClick={() => setFilterStatus('converted')}
-            className={`px-3 py-1.5 rounded-lg font-semibold transition ${
-              filterStatus === 'converted' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+            className={`px-3 py-1.5 rounded-md font-medium transition ${
+              filterStatus === 'converted' ? 'bg-slate-800 text-white font-semibold' : 'text-slate-400 hover:text-white'
             }`}
           >
             Facturadas

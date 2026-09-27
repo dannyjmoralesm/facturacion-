@@ -174,99 +174,88 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
 
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 text-slate-100">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <span className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
-            <Package className="w-6 h-6" />
-          </span>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-black text-white">Inventario & Catálogo Digital</h1>
-            <p className="text-xs text-slate-400">
-              Control de stock físico, servicios sin inventario y catálogo bimoneda para WhatsApp.
-            </p>
-          </div>
+      {/* Header & Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-800/80">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">Inventario & Catálogo</h1>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Control de existencias físicas, servicios y catálogo digital bimoneda.
+          </p>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
           <button
-            onClick={() => setIsValuationModalOpen(true)}
-            className="px-3.5 py-2.5 bg-emerald-950/70 hover:bg-emerald-900/90 text-emerald-300 font-bold rounded-xl text-xs sm:text-sm flex items-center gap-2 border border-emerald-600/50 shadow-md shadow-emerald-950/40 transition cursor-pointer"
-            title="Ver ventana de Valoración Total del Inventario a precio de venta"
-          >
-            <DollarSign className="w-4 h-4 text-emerald-400" />
-            <span>Valor Total: {formatUSD(valuationStats.totalSaleUSD)}</span>
-          </button>
-
-          <button
             onClick={() => setIsCatalogPreviewOpen(true)}
-            className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-xl text-xs sm:text-sm flex items-center gap-2 border border-slate-700 transition"
+            className="px-3 py-2 bg-slate-800 hover:bg-slate-750 text-slate-200 font-medium rounded-xl text-xs flex items-center gap-1.5 border border-slate-700 transition"
           >
-            <Share2 className="w-4 h-4 text-emerald-400" />
+            <Share2 className="w-3.5 h-3.5 text-emerald-400" />
             <span>Catálogo WhatsApp</span>
           </button>
 
           {userRole === 'admin' && (products?.length || 0) > 0 && onClearAllProducts && (
             <button
               onClick={onClearAllProducts}
-              className="px-3.5 py-2.5 bg-rose-950/60 hover:bg-rose-900 border border-rose-700/60 text-rose-300 font-semibold rounded-xl text-xs sm:text-sm flex items-center gap-1.5 transition cursor-pointer"
-              title="Eliminar todos los productos y reiniciar inventario en blanco"
+              className="px-3 py-2 bg-slate-900 hover:bg-rose-950/40 border border-slate-800 hover:border-rose-900/60 text-slate-400 hover:text-rose-300 font-medium rounded-xl text-xs flex items-center gap-1.5 transition"
+              title="Eliminar todos los productos y reiniciar catálogo"
             >
-              <Trash2 className="w-4 h-4" />
-              <span>Vaciar Catálogo</span>
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Vaciar</span>
             </button>
           )}
 
           {userRole === 'admin' && (
             <button
               onClick={handleOpenCreate}
-              className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-indigo-950 transition cursor-pointer"
+              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition"
             >
               <Plus className="w-4 h-4" />
-              <span>+ Nuevo Producto / Servicio</span>
+              <span>Nuevo Producto</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* Quick Valuation Banner Card */}
-      <div 
-        onClick={() => setIsValuationModalOpen(true)}
-        className="bg-gradient-to-r from-emerald-950/40 via-slate-900 to-indigo-950/40 border border-emerald-600/40 hover:border-emerald-500 p-4 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 cursor-pointer transition shadow-lg group"
-      >
-        <div className="flex items-center gap-3">
-          <span className="p-3 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 group-hover:scale-105 transition shrink-0">
-            <Calculator className="w-6 h-6" />
-          </span>
-          <div>
-            <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-              <span>Valor Total del Inventario (A Precio de Venta)</span>
-              <span className="bg-emerald-950 text-emerald-300 px-1.5 py-0.5 text-[10px] rounded border border-emerald-700 font-mono">
-                Tasa BCV {(bcvRate || 813.74).toFixed(2)} Bs/$
-              </span>
-            </div>
-            <div className="flex items-baseline gap-2 mt-0.5 flex-wrap">
-              <span className="text-xl sm:text-2xl font-black font-mono text-white">
-                {formatUSD(valuationStats.totalSaleUSD)}
-              </span>
-              <span className="text-sm font-semibold font-mono text-emerald-300">
-                / {formatVES(valuationStats.totalSaleVES)}
-              </span>
-              <span className="text-xs text-slate-400 font-medium">
-                ({valuationStats.totalUnits.toLocaleString()} unidades en {valuationStats.physicalCount} artículos físicos)
-              </span>
-            </div>
+      {/* Clean KPI Overview */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div 
+          onClick={() => setIsValuationModalOpen(true)}
+          className="bg-slate-900/80 border border-slate-800 rounded-xl p-3.5 hover:border-slate-700 cursor-pointer transition"
+        >
+          <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
+            <span>Valoración de Inventario (PVP)</span>
+            <span className="text-[11px] text-emerald-400 font-medium">Ver detalle →</span>
+          </div>
+          <div className="text-xl font-bold font-mono tabular-nums text-white">
+            {formatUSD(valuationStats.totalSaleUSD)}
+          </div>
+          <div className="text-xs font-mono tabular-nums text-slate-400 mt-0.5">
+            {formatVES(valuationStats.totalSaleVES)}
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400 group-hover:text-emerald-300 self-end sm:self-center shrink-0">
-          <span>Abrir Ventana de Valoración</span>
-          <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition" />
+        <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-3.5">
+          <div className="text-xs text-slate-400 mb-1">Unidades Físicas en Stock</div>
+          <div className="text-xl font-bold font-mono tabular-nums text-white">
+            {valuationStats.totalUnits.toLocaleString()}
+          </div>
+          <div className="text-xs text-slate-500 mt-0.5">
+            En {valuationStats.physicalCount} artículos físicos registrados
+          </div>
+        </div>
+
+        <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-3.5">
+          <div className="text-xs text-slate-400 mb-1">Tasa BCV Oficial</div>
+          <div className="text-xl font-bold font-mono tabular-nums text-emerald-400">
+            {(bcvRate || 813.74).toFixed(2)} Bs/$
+          </div>
+          <div className="text-xs text-slate-500 mt-0.5">
+            Conversión oficial para precios en Bolívares
+          </div>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-slate-900 border border-slate-800 p-3 sm:p-3.5 rounded-2xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3">
+      <div className="bg-slate-900/80 border border-slate-800 p-2.5 sm:p-3 rounded-xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
         <div className="relative flex-1 min-w-0">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
@@ -274,40 +263,40 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por nombre, código de barras o referencia..."
-            className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-slate-700"
           />
         </div>
 
         {/* Type filters */}
-        <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs overflow-x-auto scrollbar-none shrink-0">
+        <div className="flex items-center bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs overflow-x-auto scrollbar-none shrink-0">
           <button
             onClick={() => setFilterType('all')}
-            className={`px-3 py-1.5 rounded-lg font-semibold whitespace-nowrap transition ${
-              filterType === 'all' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+            className={`px-3 py-1.5 rounded-md font-medium whitespace-nowrap transition ${
+              filterType === 'all' ? 'bg-slate-800 text-white font-semibold' : 'text-slate-400 hover:text-white'
             }`}
           >
             Todos ({(products?.length || 0)})
           </button>
           <button
             onClick={() => setFilterType('physical')}
-            className={`px-3 py-1.5 rounded-lg font-semibold whitespace-nowrap transition ${
-              filterType === 'physical' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+            className={`px-3 py-1.5 rounded-md font-medium whitespace-nowrap transition ${
+              filterType === 'physical' ? 'bg-slate-800 text-white font-semibold' : 'text-slate-400 hover:text-white'
             }`}
           >
             Productos
           </button>
           <button
             onClick={() => setFilterType('service')}
-            className={`px-3 py-1.5 rounded-lg font-semibold whitespace-nowrap transition ${
-              filterType === 'service' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+            className={`px-3 py-1.5 rounded-md font-medium whitespace-nowrap transition ${
+              filterType === 'service' ? 'bg-slate-800 text-white font-semibold' : 'text-slate-400 hover:text-white'
             }`}
           >
             Servicios
           </button>
           <button
             onClick={() => setFilterType('low_stock')}
-            className={`px-3 py-1.5 rounded-lg font-semibold whitespace-nowrap transition ${
-              filterType === 'low_stock' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'
+            className={`px-3 py-1.5 rounded-md font-medium whitespace-nowrap transition ${
+              filterType === 'low_stock' ? 'bg-amber-500/20 text-amber-300 font-semibold' : 'text-slate-400 hover:text-white'
             }`}
           >
             Stock Bajo
@@ -359,53 +348,54 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                       )}
                     </td>
 
-                    <td className="p-3.5">
+                    <td className="p-3.5 text-slate-400">
                       {p.type === 'service' ? (
-                        <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-semibold border border-indigo-500/30 inline-flex items-center gap-1">
-                          <Wrench className="w-3 h-3" /> Servicio
+                        <span className="text-slate-400 font-medium inline-flex items-center gap-1">
+                          <Wrench className="w-3 h-3 text-slate-500" /> Servicio
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-semibold inline-flex items-center gap-1">
-                          <Package className="w-3 h-3" /> Físico
+                        <span className="text-slate-300 font-medium inline-flex items-center gap-1">
+                          <Package className="w-3 h-3 text-slate-500" /> Físico
                         </span>
                       )}
                     </td>
 
                     {userRole === 'admin' && (
-                      <td className="p-3.5 text-right font-mono text-slate-400">
+                      <td className="p-3.5 text-right font-mono tabular-nums text-slate-400">
                         {p.costUSD ? formatUSD(p.costUSD) : '-'}
-                        {margin && <div className="text-[10px] text-emerald-400 font-bold">+{margin}%</div>}
+                        {margin && <div className="text-[10px] text-emerald-400 font-medium">+{margin}%</div>}
                       </td>
                     )}
 
-                    <td className="p-3.5 text-right font-mono text-slate-200">
+                    <td className="p-3.5 text-right font-mono tabular-nums text-slate-200">
                       <div>{formatUSD(p.priceUSD)}</div>
                       <div className="text-[10px] text-slate-500">{formatVES(p.priceUSD * bcvRate)}</div>
                     </td>
 
-                    <td className="p-3.5 text-right font-mono text-sky-400">
+                    <td className="p-3.5 text-right font-mono tabular-nums text-slate-300">
                       <div>+{formatUSD(ivaUSD)}</div>
                       <div className="text-[10px] text-slate-500">{formatVES(ivaUSD * bcvRate)}</div>
                     </td>
 
-                    <td className="p-3.5 text-right font-mono">
+                    <td className="p-3.5 text-right font-mono tabular-nums">
                       <div className="font-bold text-emerald-400 text-sm">{formatUSD(pvpUSD)}</div>
                       <div className="text-[11px] text-slate-400">{formatVES(pvpUSD * bcvRate)}</div>
                     </td>
 
-                    <td className="p-3.5 text-center">
+                    <td className="p-3.5 text-center font-mono tabular-nums">
                       {p.type === 'service' ? (
-                        <span className="text-slate-500 font-mono">Ilimitado</span>
+                        <span className="text-slate-500 text-xs">Ilimitado</span>
                       ) : isOutOfStock ? (
-                        <span className="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold">
+                        <span className="text-rose-400 font-medium text-xs">
                           0 {p.unit}
                         </span>
                       ) : isLowStock ? (
-                        <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold flex items-center justify-center gap-1">
-                          <AlertTriangle className="w-3 h-3" /> {p.stock} {p.unit}
+                        <span className="text-amber-400 font-medium text-xs inline-flex items-center justify-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                          {p.stock} {p.unit}
                         </span>
                       ) : (
-                        <span className="font-mono text-slate-200 font-semibold">
+                        <span className="text-slate-300 font-medium text-xs">
                           {p.stock} {p.unit}
                         </span>
                       )}

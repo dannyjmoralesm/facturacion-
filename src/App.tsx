@@ -3,8 +3,12 @@ import {
   Building2 
 } from 'lucide-react';
 import { 
-  Navbar 
+  Navbar,
+  AppView 
 } from './components/Navbar';
+import { 
+  HomeDashboard 
+} from './components/Dashboard/HomeDashboard';
 import { 
   POSScreen 
 } from './components/POS/POSScreen';
@@ -162,8 +166,8 @@ export default function App() {
   const [userSwitchRoleRequired, setUserSwitchRoleRequired] = useState<'admin' | undefined>(undefined);
   const [userSwitchPendingAction, setUserSwitchPendingAction] = useState<(() => void) | null>(null);
 
-  // Navigation & View
-  const [currentView, setCurrentView] = useState<'pos' | 'quotes' | 'inventory' | 'debts' | 'sales' | 'finance' | 'customers' | 'payroll'>('pos');
+  // Navigation & View (Starts at calm Home Dashboard)
+  const [currentView, setCurrentView] = useState<AppView>('home');
   const [userRole, setUserRole] = useState<UserRole>(() => getCurrentUser().role || getUserRole());
 
   // BCV Rate state
@@ -1439,6 +1443,25 @@ export default function App() {
 
       {/* Main View Router */}
       <main className="flex-1 flex flex-col overflow-hidden pb-16 md:pb-0">
+        {currentView === 'home' && (
+          <div className="flex-1 overflow-y-auto">
+            <HomeDashboard
+              onNavigate={(v) => setCurrentView(v)}
+              currentUser={currentUser}
+              userRole={userRole}
+              bcvRate={bcvRate}
+              activeShift={activeShift}
+              onOpenShiftModal={() => setIsShiftModalOpen(true)}
+              profile={profile}
+              products={products}
+              debts={debts}
+              sales={sales}
+              customers={customers}
+              supplierDebts={supplierDebts}
+            />
+          </div>
+        )}
+
         {currentView === 'pos' && (
           <POSScreen
             products={products}
@@ -1698,9 +1721,9 @@ export default function App() {
       {syncToastMessage && (
         <div 
           id="realtime-sync-toast"
-          className="fixed bottom-16 right-4 z-50 max-w-sm bg-slate-900/95 border border-emerald-500/50 text-slate-100 px-3.5 py-2.5 rounded-xl shadow-2xl backdrop-blur-md flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300"
+          className="fixed bottom-16 right-4 z-50 max-w-sm bg-slate-900/95 border border-slate-750 text-slate-100 px-3.5 py-2.5 rounded-xl shadow-xl backdrop-blur-md flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300"
         >
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping flex-shrink-0" />
+          <span className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-xs font-semibold text-emerald-400 leading-tight">Sincronización en Vivo</p>
             <p className="text-xs text-slate-200 truncate">{syncToastMessage}</p>

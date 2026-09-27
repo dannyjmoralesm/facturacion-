@@ -75,68 +75,53 @@ export const SalesHistory: React.FC<SalesHistoryProps> = ({
   const totalSalesVES = filteredSales.reduce((sum, s) => sum + s.totalVES, 0);
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 text-slate-100">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-5 text-slate-100">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <span className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-            <Receipt className="w-6 h-6" />
-          </span>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-black text-white">Historial de Ventas & Facturación</h1>
-            <p className="text-xs text-slate-400">
-              Registro auditable con número de control, desglose de pagos multimoneda y reimpresión de comprobantes.
-            </p>
-          </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-800/80">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">Historial de Ventas</h1>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Registro de operaciones, comprobantes emitidos y desglose multimoneda.
+          </p>
         </div>
 
         {/* Totals Summary & Report Buttons */}
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
           <div className="flex items-center gap-2">
             <button
               onClick={() => openReportModal('daily')}
-              className={`px-3.5 py-2.5 rounded-xl border text-xs font-bold transition flex items-center gap-2 shadow-sm ${
-                isAdmin 
-                  ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                  : 'bg-slate-900 text-slate-400 hover:text-slate-300 border-slate-700'
-              }`}
-              title={isAdmin ? 'Generar e imprimir reporte diario / cierre de caja' : 'Reporte Diario restringido para Administradores'}
+              className="px-3 py-2 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-750 text-xs font-medium text-slate-200 transition flex items-center gap-1.5 shadow-sm"
+              title={isAdmin ? 'Generar reporte diario' : 'Reporte restringido para Administradores'}
             >
-              {isAdmin ? <Clock className="w-4 h-4" /> : <Lock className="w-4 h-4 text-amber-400" />}
+              {isAdmin ? <Clock className="w-3.5 h-3.5 text-emerald-400" /> : <Lock className="w-3.5 h-3.5 text-slate-500" />}
               <span>Reporte Diario</span>
-              {!isAdmin && <span className="text-[9px] bg-amber-500/20 text-amber-300 px-1 rounded">Admin</span>}
+              {!isAdmin && <span className="text-[10px] text-slate-500">Admin</span>}
             </button>
             <button
               onClick={() => openReportModal('monthly')}
-              className={`px-3.5 py-2.5 rounded-xl border text-xs font-bold transition flex items-center gap-2 shadow-sm ${
-                isAdmin
-                  ? 'bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border-purple-500/30'
-                  : 'bg-slate-900 text-slate-400 hover:text-slate-300 border-slate-700'
-              }`}
-              title={isAdmin ? 'Generar e imprimir reporte consolidado mensual' : 'Reporte Mensual restringido para Administradores'}
+              className="px-3 py-2 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-750 text-xs font-medium text-slate-200 transition flex items-center gap-1.5 shadow-sm"
+              title={isAdmin ? 'Generar reporte mensual' : 'Reporte restringido para Administradores'}
             >
-              {isAdmin ? <Calendar className="w-4 h-4" /> : <Lock className="w-4 h-4 text-amber-400" />}
+              {isAdmin ? <Calendar className="w-3.5 h-3.5 text-emerald-400" /> : <Lock className="w-3.5 h-3.5 text-slate-500" />}
               <span>Reporte Mensual</span>
-              {!isAdmin && <span className="text-[9px] bg-amber-500/20 text-amber-300 px-1 rounded">Admin</span>}
+              {!isAdmin && <span className="text-[10px] text-slate-500">Admin</span>}
             </button>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 p-3 rounded-2xl flex items-center gap-4">
-            <div>
-              <div className="text-[10px] text-slate-400 uppercase font-bold">Total Facturado</div>
-              <div className="text-lg sm:text-xl font-black text-emerald-400 font-mono leading-none mt-0.5">
-                {formatUSD(totalSalesUSD)}
-              </div>
-              <div className="text-xs text-slate-400 font-mono mt-0.5">
-                {formatVES(totalSalesVES)}
-              </div>
+          <div className="bg-slate-900/80 border border-slate-800 px-3.5 py-2 rounded-xl">
+            <div className="text-[10px] text-slate-500 font-medium">Total Facturado</div>
+            <div className="text-base sm:text-lg font-bold text-white font-mono tabular-nums leading-none mt-0.5">
+              {formatUSD(totalSalesUSD)}
+            </div>
+            <div className="text-[11px] text-slate-400 font-mono tabular-nums mt-0.5">
+              {formatVES(totalSalesVES)}
             </div>
           </div>
         </div>
       </div>
 
       {/* Filter and Search */}
-      <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl flex flex-wrap items-center justify-between gap-3">
+      <div className="bg-slate-900/80 border border-slate-800 p-2.5 sm:p-3 rounded-xl flex flex-wrap items-center justify-between gap-2.5">
         <div className="relative flex-1 min-w-[240px]">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
@@ -144,7 +129,7 @@ export const SalesHistory: React.FC<SalesHistoryProps> = ({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por Nro. Factura, Control, Cliente o Cédula..."
-            className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+            className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-slate-700"
           />
         </div>
 
@@ -153,7 +138,7 @@ export const SalesHistory: React.FC<SalesHistoryProps> = ({
           <select
             value={filterMethod}
             onChange={(e) => setFilterMethod(e.target.value)}
-            className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white"
+            className="px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-300 focus:outline-none"
           >
             <option value="all">Todos los métodos</option>
             <option value="pago_movil">Pago Móvil</option>

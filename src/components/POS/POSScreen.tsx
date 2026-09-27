@@ -343,14 +343,14 @@ export const POSScreen: React.FC<POSScreenProps> = ({
           </button>
         </div>
 
-        {/* Category Pills */}
-        <div className="px-3 sm:px-4 py-2 bg-slate-900/90 border-b border-slate-800/80 flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+        {/* Category Segmented Control */}
+        <div className="px-3 sm:px-4 py-2 bg-slate-950/80 border-b border-slate-800/80 flex items-center gap-1.5 overflow-x-auto scrollbar-none">
           <button
             onClick={() => setSelectedCategory('all')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition ${
               selectedCategory === 'all'
-                ? 'bg-emerald-600 text-white shadow-xs'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white'
+                ? 'bg-slate-800 text-white font-semibold border border-slate-750 shadow-xs'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850'
             }`}
           >
             Todos ({(products?.length || 0)})
@@ -359,10 +359,10 @@ export const POSScreen: React.FC<POSScreenProps> = ({
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition ${
                 selectedCategory === cat
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white'
+                  ? 'bg-slate-800 text-white font-semibold border border-slate-750 shadow-xs'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850'
               }`}
             >
               {cat}
@@ -389,49 +389,50 @@ export const POSScreen: React.FC<POSScreenProps> = ({
                   type="button"
                   onClick={() => handleAddToCart(p)}
                   disabled={isOutOfStock}
-                  className={`bg-slate-800/90 border border-slate-700/80 rounded-xl p-2.5 sm:p-3 text-left flex flex-col justify-between hover:border-emerald-500/80 hover:bg-slate-800 transition-all group relative overflow-hidden active:scale-[0.97] touch-manipulation min-h-[110px] ${
-                    isOutOfStock ? 'opacity-50 cursor-not-allowed' : ''
+                  className={`bg-slate-900/80 border border-slate-800 rounded-xl p-3 text-left flex flex-col justify-between hover:border-slate-700 hover:bg-slate-850/80 transition-all group relative overflow-hidden active:scale-[0.98] touch-manipulation min-h-[110px] ${
+                    isOutOfStock ? 'opacity-40 cursor-not-allowed' : ''
                   }`}
                 >
-                  {/* Category & Badge */}
-                  <div className="flex items-center justify-between gap-1 mb-1 text-[10px]">
-                    <span className="text-slate-400 font-medium truncate">{p.category}</span>
+                  {/* Category & Clean Stock Status (Zero-Pill Discipline) */}
+                  <div className="flex items-center justify-between gap-1 mb-1.5 text-[11px] text-slate-400">
+                    <span className="truncate">{p.category}</span>
                     {p.type === 'service' ? (
-                      <span className="px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 font-semibold flex items-center gap-0.5">
-                        <Wrench className="w-2.5 h-2.5" /> Serv
+                      <span className="text-slate-400 flex items-center gap-1">
+                        <Wrench className="w-2.5 h-2.5 text-slate-500" /> Serv
                       </span>
                     ) : isOutOfStock ? (
-                      <span className="px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 font-semibold">
+                      <span className="text-rose-400 font-medium">
                         Agotado
                       </span>
                     ) : isLowStock ? (
-                      <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-semibold flex items-center gap-0.5">
-                        <AlertTriangle className="w-2.5 h-2.5" /> {p.stock} {p.unit}
+                      <span className="text-amber-400 font-medium flex items-center gap-1 font-mono tabular-nums">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                        {p.stock} {p.unit}
                       </span>
                     ) : (
-                      <span className="text-slate-400 font-mono">
+                      <span className="text-slate-500 font-mono tabular-nums">
                         {p.stock} {p.unit}
                       </span>
                     )}
                   </div>
 
                   {/* Product Title */}
-                  <div className="font-semibold text-xs sm:text-sm text-slate-100 group-hover:text-emerald-300 transition line-clamp-2 mb-2 leading-snug">
+                  <div className="font-medium text-xs sm:text-sm text-slate-200 group-hover:text-white transition line-clamp-2 mb-2 leading-snug">
                     {p.name}
                   </div>
 
                   {/* Dual Price Footer */}
-                  <div className="mt-auto pt-1.5 sm:pt-2 border-t border-slate-750 flex items-end justify-between">
+                  <div className="mt-auto pt-2 border-t border-slate-800/80 flex items-end justify-between">
                     <div>
-                      <div className="text-xs sm:text-base font-black text-emerald-400 font-mono leading-none">
+                      <div className="text-xs sm:text-base font-bold text-emerald-400 font-mono tabular-nums leading-none">
                         {formatUSD(p.priceUSD)}
                       </div>
-                      <div className="text-[10px] sm:text-[11px] text-slate-400 font-mono mt-0.5">
+                      <div className="text-[10px] sm:text-[11px] text-slate-400 font-mono tabular-nums mt-0.5">
                         {formatVES(priceVES)}
                       </div>
                     </div>
 
-                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-slate-700/80 group-hover:bg-emerald-600 text-slate-300 group-hover:text-white flex items-center justify-center transition shadow-xs shrink-0">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-slate-800 text-slate-300 group-hover:bg-emerald-600 group-hover:text-white flex items-center justify-center transition shadow-xs shrink-0">
                       {p.variants && p.variants.length > 0 ? (
                         <Layers className="w-3.5 h-3.5" />
                       ) : (

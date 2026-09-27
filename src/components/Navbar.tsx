@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
+  Home,
   ShoppingBag, 
   FileText, 
   Package, 
@@ -10,33 +11,30 @@ import {
   RefreshCw, 
   Edit3, 
   Lock, 
-  Unlock, 
   Wallet, 
-  TrendingUp,
-  Check,
-  Building2,
-  Crown,
-  User,
-  ShieldCheck,
-  Download,
-  Smartphone,
-  Monitor,
-  Sparkles,
-  MoreHorizontal,
-  X,
-  Wifi,
-  WifiOff,
-  Radio,
-  Users,
-  Briefcase
+  TrendingUp, 
+  Check, 
+  Building2, 
+  Crown, 
+  User, 
+  Download, 
+  MoreHorizontal, 
+  X, 
+  Wifi, 
+  WifiOff, 
+  Radio, 
+  Users, 
+  Briefcase 
 } from 'lucide-react';
 import { CashShift, UserRole, AppUser } from '../types';
-import { formatUSD, formatVES } from '../utils/bcvService';
+import { formatUSD } from '../utils/bcvService';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 
+export type AppView = 'home' | 'pos' | 'quotes' | 'inventory' | 'debts' | 'sales' | 'finance' | 'customers' | 'payroll';
+
 interface NavbarProps {
-  currentView: 'pos' | 'quotes' | 'inventory' | 'debts' | 'sales' | 'finance' | 'customers' | 'payroll';
-  onNavigate: (view: 'pos' | 'quotes' | 'inventory' | 'debts' | 'sales' | 'finance' | 'customers' | 'payroll') => void;
+  currentView: AppView;
+  onNavigate: (view: AppView) => void;
   bcvRate: number;
   rateDate?: string;
   isRateLoading?: boolean;
@@ -114,28 +112,139 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const isAdmin = (currentUser?.role === 'admin') || userRole === 'admin';
 
+  // Navigation Items with distinctive, attractive color identities ("llamativo")
+  const navTabs = [
+    { 
+      id: 'nav-tab-home', 
+      view: 'home' as const, 
+      label: 'Inicio', 
+      icon: Home,
+      activeColor: 'bg-emerald-700/80 text-white shadow-md shadow-emerald-950/60 border border-emerald-500/40',
+      iconColor: 'text-emerald-300'
+    },
+    { 
+      id: 'nav-tab-pos', 
+      view: 'pos' as const, 
+      label: 'POS Mostrador', 
+      icon: ShoppingBag,
+      activeColor: 'bg-emerald-600 text-white shadow-md shadow-emerald-900/50',
+      iconColor: 'text-emerald-200'
+    },
+    { 
+      id: 'nav-tab-quotes', 
+      view: 'quotes' as const, 
+      label: 'Cotizaciones', 
+      icon: FileText,
+      activeColor: 'bg-blue-600 text-white shadow-md shadow-blue-900/50',
+      iconColor: 'text-blue-200'
+    },
+    { 
+      id: 'nav-tab-inventory', 
+      view: 'inventory' as const, 
+      label: 'Inventario', 
+      icon: Package,
+      activeColor: 'bg-indigo-600 text-white shadow-md shadow-indigo-900/50',
+      iconColor: 'text-indigo-200',
+      badge: lowStockCount > 0 ? (
+        <span className="bg-amber-400 text-slate-950 text-[10px] font-extrabold px-1.5 py-0.2 rounded-full font-mono">
+          {lowStockCount}
+        </span>
+      ) : null
+    },
+    { 
+      id: 'nav-tab-customers', 
+      view: 'customers' as const, 
+      label: 'Clientes', 
+      icon: Users,
+      activeColor: 'bg-teal-600 text-white shadow-md shadow-teal-900/50',
+      iconColor: 'text-teal-200',
+      badge: totalCustomersCount > 0 ? (
+        <span className="bg-teal-950 text-teal-300 border border-teal-700/60 text-[10px] font-bold px-1.5 py-0.2 rounded-full font-mono">
+          {totalCustomersCount}
+        </span>
+      ) : null
+    },
+    { 
+      id: 'nav-tab-debts', 
+      view: 'debts' as const, 
+      label: 'Fiados', 
+      icon: BookOpen,
+      activeColor: 'bg-amber-600 text-white shadow-md shadow-amber-900/50',
+      iconColor: 'text-amber-200',
+      badge: pendingDebtsCount > 0 ? (
+        <span className="bg-rose-500 text-white text-[10px] font-extrabold px-1.5 py-0.2 rounded-full font-mono animate-pulse">
+          {pendingDebtsCount}
+        </span>
+      ) : null
+    },
+    { 
+      id: 'nav-tab-finance', 
+      view: 'finance' as const, 
+      label: 'Finanzas', 
+      icon: Building2, 
+      adminOnly: true,
+      activeColor: 'bg-purple-600 text-white shadow-md shadow-purple-900/50',
+      iconColor: 'text-purple-200',
+      badge: pendingPayablesCount > 0 ? (
+        <span className="bg-amber-400 text-slate-950 text-[10px] font-extrabold px-1.5 py-0.2 rounded-full font-mono">
+          {pendingPayablesCount}
+        </span>
+      ) : null
+    },
+    { 
+      id: 'nav-tab-payroll', 
+      view: 'payroll' as const, 
+      label: 'Nómina', 
+      icon: Briefcase, 
+      adminOnly: true,
+      activeColor: 'bg-fuchsia-600 text-white shadow-md shadow-fuchsia-900/50',
+      iconColor: 'text-fuchsia-200',
+      badge: (
+        <span className="bg-fuchsia-950 text-fuchsia-300 border border-fuchsia-700/60 text-[10px] font-bold px-1.5 py-0.2 rounded-full font-mono hidden xl:inline">
+          LOTTT
+        </span>
+      )
+    },
+    { 
+      id: 'nav-tab-sales', 
+      view: 'sales' as const, 
+      label: 'Ventas', 
+      icon: Receipt,
+      activeColor: 'bg-cyan-700 text-white shadow-md shadow-cyan-900/50',
+      iconColor: 'text-cyan-200'
+    },
+  ];
+
   return (
     <>
-      <header className="bg-slate-900 border-b border-slate-800 text-slate-100 sticky top-0 z-40 shadow-md">
-        {/* Top Banner: Financial Bar with BCV Rate, Cash Shift & Roles */}
-        <div className="px-3 sm:px-4 py-2 bg-slate-950/90 border-b border-slate-800/80 flex items-center justify-between gap-2 text-xs">
-          {/* Left: Brand + Official BCV Ticker */}
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap min-w-0">
-            <div className="flex items-center gap-1.5 sm:gap-2 font-black tracking-wider text-emerald-400 shrink-0">
-              <span className="bg-emerald-500/20 text-emerald-400 p-1 rounded-lg border border-emerald-500/30">
-                <TrendingUp className="w-3.5 h-3.5" />
-              </span>
-              <span className="text-xs sm:text-sm font-black tracking-tight">NEGOFACT</span>
-              <span className="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono font-normal hidden sm:inline">
-                VE
-              </span>
-            </div>
+      <header className="bg-slate-900 border-b border-slate-800 text-slate-100 sticky top-0 z-40 shadow-md select-none">
+        {/* Tier 1: Brand & Key Financial Operations Header */}
+        <div className="px-3 sm:px-4 py-2 border-b border-slate-800/80 bg-slate-950/80 flex items-center justify-between gap-3 text-xs">
+          {/* Brand & BCV Rate Ticker */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => onNavigate('home')}
+              className="flex items-center gap-2 group cursor-pointer text-left focus:outline-none"
+              title="Ir al Inicio / Centro de Control"
+            >
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center group-hover:scale-105 transition">
+                <TrendingUp className="w-4 h-4" />
+              </div>
+              <div className="flex items-baseline gap-1.5">
+                <span className="font-black text-sm tracking-tight text-white group-hover:text-emerald-300 transition">
+                  NEGOFACT
+                </span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-emerald-400 font-mono font-bold hidden sm:inline">
+                  POS VE
+                </span>
+              </div>
+            </button>
 
-            <div className="h-4 w-px bg-slate-800 hidden sm:block" />
+            <div className="h-4 w-px bg-slate-800 hidden xs:block" />
 
             {/* BCV Rate Pill */}
-            <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-900 px-2 sm:px-2.5 py-1 rounded-lg border border-slate-700 shrink-0">
-              <span className="text-slate-400 font-medium text-[11px] hidden xs:inline">BCV:</span>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-750 text-[11px] shadow-xs">
+              <span className="text-slate-400 font-medium">BCV:</span>
               {isEditingRate ? (
                 <form onSubmit={handleSaveRate} className="flex items-center gap-1">
                   <input
@@ -143,7 +252,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     step="0.01"
                     value={tempRate}
                     onChange={(e) => setTempRate(e.target.value)}
-                    className="w-16 sm:w-20 px-1 py-0.5 bg-slate-800 border border-emerald-500 text-emerald-400 rounded text-xs focus:outline-none"
+                    className="w-16 px-1 py-0.5 bg-slate-800 border border-emerald-500 text-emerald-300 rounded text-[11px] font-mono focus:outline-none"
                     autoFocus
                   />
                   <button
@@ -160,338 +269,216 @@ export const Navbar: React.FC<NavbarProps> = ({
                     setTempRate((bcvRate || 813.74).toString());
                     setIsEditingRate(true);
                   }}
-                  className="group flex items-center gap-1 font-bold text-emerald-400 hover:text-emerald-300 font-mono text-xs sm:text-sm"
-                  title="Haga clic para editar tasa manualmente"
+                  className="group flex items-center gap-1 font-bold text-emerald-400 hover:text-emerald-300 font-mono"
+                  title="Clic para editar tasa manualmente"
                 >
-                  <span>{(bcvRate || 813.74).toFixed(2)} Bs/$</span>
-                  <Edit3 className="w-3 h-3 text-slate-500 group-hover:text-emerald-400" />
+                  <span className="tabular-nums">{(bcvRate || 813.74).toFixed(2)} Bs/$</span>
+                  <Edit3 className="w-3 h-3 text-slate-500 group-hover:text-emerald-400 transition" />
                 </button>
               )}
 
               <button
                 onClick={handleRefreshClick}
                 disabled={isRateLoading}
-                className={`p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition ${
+                className={`p-0.5 text-slate-400 hover:text-white transition ${
                   isRateLoading ? 'animate-spin text-emerald-400' : ''
                 }`}
-                title="Sincronizar tasa BCV en vivo"
+                title="Sincronizar tasa BCV oficial en vivo"
               >
                 <RefreshCw className="w-3 h-3" />
               </button>
             </div>
           </div>
 
-          {/* Right: Cash Shift, Role & Current User Switcher */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* Shift Button */}
+          {/* Right Utilities: Shift, Sync, User, Actions */}
+          <div className="flex items-center gap-2">
+            {/* Cash Shift Button */}
             <button
               onClick={onOpenShiftModal}
-              className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-medium transition border ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-bold border transition ${
                 activeShift 
-                  ? 'bg-emerald-950/50 text-emerald-300 border-emerald-700/60 hover:bg-emerald-900/60' 
-                  : 'bg-rose-950/50 text-rose-300 border-rose-700/60 hover:bg-rose-900/60'
+                  ? 'bg-emerald-950/60 text-emerald-300 border-emerald-700/60 hover:bg-emerald-900/60' 
+                  : 'bg-rose-950/60 text-rose-300 border-rose-700/60 hover:bg-rose-900/60'
               }`}
-              title="Gestión de caja y Cuadre Z"
+              title="Gestión de caja y arqueo Z"
             >
               <Wallet className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden sm:inline">
+              <span className="hidden sm:inline font-mono tabular-nums">
                 {activeShift ? `Caja: ${formatUSD(activeShift.openingUSD)}` : 'Caja Cerrada'}
               </span>
-              <span className="sm:hidden text-[11px] font-bold">
+              <span className="sm:hidden font-mono text-[10px]">
                 {activeShift ? 'Caja ON' : 'Caja OFF'}
               </span>
             </button>
 
-            {/* Real-time Multi-Device Sync Indicator */}
+            {/* Sync Status Button */}
             {onOpenSyncModal && (
               <button
                 type="button"
                 onClick={onOpenSyncModal}
-                className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-semibold transition border ${
-                  syncStatus === 'connected'
-                    ? 'bg-emerald-950/70 text-emerald-300 border-emerald-700/60 hover:bg-emerald-900/60 shadow-xs'
-                    : 'bg-amber-950/70 text-amber-300 border-amber-700/60 hover:bg-amber-900/60 shadow-xs'
-                }`}
-                title={`Sincronización en tiempo real: ${syncConnectedCount} dispositivo(s) conectado(s). Clic para conectar otros teléfonos o sincronizar.`}
+                className="flex items-center gap-1.5 px-2 py-1 rounded-xl text-[11px] bg-slate-900 border border-slate-750 hover:border-slate-700 text-slate-200 transition"
+                title={`Sincronización multi-dispositivo (${syncConnectedCount} conectados)`}
               >
                 {syncStatus === 'connected' ? (
                   <>
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                    </span>
                     <Wifi className="w-3.5 h-3.5 text-emerald-400" />
-                    <span className="font-mono text-[11px]">
-                      {syncConnectedCount} <span className="hidden sm:inline">{syncConnectedCount === 1 ? 'Disp' : 'Disps'}</span>
+                    <span className="font-mono text-[11px] text-slate-300 hidden xs:inline">
+                      {syncConnectedCount}
                     </span>
                   </>
                 ) : (
                   <>
-                    <WifiOff className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                    <span className="font-mono text-[11px] hidden sm:inline">Reconectando</span>
+                    <WifiOff className="w-3.5 h-3.5 text-amber-400" />
+                    <span className="text-[10px] text-amber-400 hidden sm:inline">Offline</span>
                   </>
                 )}
               </button>
             )}
 
-            {/* User Account & Role Switcher */}
+            {/* User Account Button */}
             <button
               type="button"
               onClick={onOpenUserSwitch}
-              className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-semibold transition border ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] border font-semibold transition ${
                 isAdmin
-                  ? 'bg-purple-950/70 text-purple-300 border-purple-700/70 hover:bg-purple-900/60 shadow-xs shadow-purple-950'
-                  : 'bg-blue-950/70 text-blue-300 border-blue-700/70 hover:bg-blue-900/60 shadow-xs shadow-blue-950'
+                  ? 'bg-purple-950/70 text-purple-300 border-purple-700/70 hover:bg-purple-900/60'
+                  : 'bg-blue-950/70 text-blue-300 border-blue-700/70 hover:bg-blue-900/60'
               }`}
-              title={`Usuario: ${currentUser?.name || 'Usuario'} (${isAdmin ? 'Administrador' : 'Vendedor'}). Clic para cambiar de usuario.`}
+              title={`Usuario: ${currentUser?.name || 'Usuario'} (${isAdmin ? 'Admin' : 'Vendedor'})`}
             >
               {isAdmin ? (
                 <Crown className="w-3.5 h-3.5 text-purple-400 shrink-0" />
               ) : (
                 <User className="w-3.5 h-3.5 text-blue-400 shrink-0" />
               )}
-              <span className="max-w-[80px] sm:max-w-[120px] truncate text-xs">{currentUser?.name || (isAdmin ? 'Admin' : 'Vendedor')}</span>
+              <span className="max-w-[70px] sm:max-w-[100px] truncate text-xs">
+                {currentUser?.name || (isAdmin ? 'Admin' : 'Vendedor')}
+              </span>
             </button>
 
-            {/* Mobile More Actions Trigger */}
+            {/* Quick Utility Icon Group (Desktop) */}
+            <div className="hidden md:flex items-center gap-1 pl-1 border-l border-slate-800">
+              {/* PWA Button */}
+              <button
+                id="nav-tab-install-pwa"
+                type="button"
+                onClick={onOpenPWAInstall}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition"
+                title={isInstalled ? 'App instalada' : `Instalar aplicación (${platform === 'android' ? 'Android' : 'PC'})`}
+              >
+                <Download className="w-4 h-4 text-emerald-400" />
+              </button>
+
+              {/* Manual Button */}
+              {onOpenManual && (
+                <button
+                  id="nav-tab-manual"
+                  type="button"
+                  onClick={onOpenManual}
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition"
+                  title="Manual de operaciones y marco fiscal"
+                >
+                  <BookOpen className="w-4 h-4 text-purple-400" />
+                </button>
+              )}
+
+              {/* Developer Schema Button */}
+              <button
+                id="nav-tab-docs"
+                onClick={onOpenArchitecture}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition"
+                title="Arquitectura y base de datos"
+              >
+                <Code className="w-4 h-4 text-cyan-400" />
+              </button>
+
+              {/* Settings Button */}
+              <button
+                id="nav-tab-settings"
+                onClick={onOpenSettings}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition"
+                title="Configuración general"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Mobile More Button */}
             <button
               type="button"
               onClick={() => setIsMobileMoreMenuOpen(true)}
-              className="md:hidden p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white border border-slate-700"
-              title="Más opciones de administración"
+              className="md:hidden p-1.5 rounded-xl text-slate-300 hover:text-white bg-slate-800 border border-slate-750"
+              title="Más opciones"
             >
               <MoreHorizontal className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* Desktop / Tablet Navigation Bar */}
-        <div className="hidden md:flex px-4 py-2 items-center justify-between overflow-x-auto scrollbar-none gap-2">
+        {/* Tier 2: Distinctive Navigation Tabs Bar (Desktop) */}
+        <div className="hidden md:flex px-4 py-2 items-center justify-between overflow-x-auto scrollbar-none bg-slate-900/90 gap-2">
           <nav className="flex items-center gap-1.5 min-w-max">
-            <button
-              id="nav-tab-pos"
-              onClick={() => onNavigate('pos')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-all ${
-                currentView === 'pos'
-                  ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-900/50'
-                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-              }`}
-            >
-              <ShoppingBag className="w-4 h-4" />
-              <span>POS Mostrador</span>
-            </button>
+            {navTabs.map((tab) => {
+              if (tab.adminOnly && !isAdmin) {
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={onOpenUserSwitch}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-slate-500 hover:text-slate-300 hover:bg-slate-800/50 transition border border-dashed border-slate-800"
+                    title={`${tab.label} requiere permisos de Administrador`}
+                  >
+                    <Lock className="w-3.5 h-3.5 text-amber-500/70" />
+                    <span>{tab.label} (Admin)</span>
+                  </button>
+                );
+              }
 
-            <button
-              id="nav-tab-quotes"
-              onClick={() => onNavigate('quotes')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-all ${
-                currentView === 'quotes'
-                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-900/50'
-                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-              }`}
-            >
-              <FileText className="w-4 h-4" />
-              <span>Cotizaciones</span>
-            </button>
+              const isActive = currentView === tab.view;
+              const Icon = tab.icon;
 
-            <button
-              id="nav-tab-inventory"
-              onClick={() => onNavigate('inventory')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-all relative ${
-                currentView === 'inventory'
-                  ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-900/50'
-                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-              }`}
-            >
-              <Package className="w-4 h-4" />
-              <span>Inventario & Catálogo</span>
-              {lowStockCount > 0 && (
-                <span className="bg-amber-500 text-slate-950 text-[10px] font-bold px-1.5 py-0.2 rounded-full">
-                  {lowStockCount}
-                </span>
-              )}
-            </button>
-
-            {/* Clientes Tab - High Visibility */}
-            <button
-              id="nav-tab-customers"
-              onClick={() => onNavigate('customers')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-all relative ${
-                currentView === 'customers'
-                  ? 'bg-teal-600 text-white shadow-sm shadow-teal-900/50'
-                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-              }`}
-            >
-              <Users className="w-4 h-4 text-teal-300" />
-              <span>Clientes</span>
-              {totalCustomersCount > 0 && (
-                <span className="bg-teal-950 text-teal-300 border border-teal-700/60 text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-full">
-                  {totalCustomersCount}
-                </span>
-              )}
-            </button>
-
-            <button
-              id="nav-tab-debts"
-              onClick={() => onNavigate('debts')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-all relative ${
-                currentView === 'debts'
-                  ? 'bg-amber-600 text-white shadow-sm shadow-amber-900/50'
-                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-              }`}
-            >
-              <BookOpen className="w-4 h-4" />
-              <span>Libreta de Fiados</span>
-              {pendingDebtsCount > 0 && (
-                <span className="bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full">
-                  {pendingDebtsCount}
-                </span>
-              )}
-            </button>
-
-            {/* Finanzas Tab: Accessible ONLY to Administrador */}
-            {isAdmin ? (
-              <button
-                id="nav-tab-finance"
-                onClick={() => onNavigate('finance')}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-all relative ${
-                  currentView === 'finance'
-                    ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-900/50'
-                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                }`}
-              >
-                <Building2 className="w-4 h-4" />
-                <span>Finanzas</span>
-                {pendingPayablesCount > 0 && (
-                  <span className="bg-amber-500 text-slate-950 text-[10px] font-bold px-1.5 py-0.2 rounded-full">
-                    {pendingPayablesCount}
-                  </span>
-                )}
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={onOpenUserSwitch}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-500 hover:text-slate-300 hover:bg-slate-800/60 transition border border-dashed border-slate-800"
-                title="Pestaña de Finanzas bloqueada para rol Vendedor. Requiere inicio de sesión como Administrador."
-              >
-                <Lock className="w-3.5 h-3.5 text-amber-500/70" />
-                <span>Finanzas (Admin)</span>
-              </button>
-            )}
-
-            {/* Nómina LOTTT Bimoneda Tab: Accessible ONLY to Administrador */}
-            {isAdmin ? (
-              <button
-                id="nav-tab-payroll"
-                onClick={() => onNavigate('payroll')}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-all relative ${
-                  currentView === 'payroll'
-                    ? 'bg-purple-600 text-white shadow-sm shadow-purple-900/50'
-                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                }`}
-              >
-                <Briefcase className="w-4 h-4 text-purple-300" />
-                <span>Nómina LOTTT</span>
-                <span className="bg-purple-950 text-purple-300 border border-purple-700/60 text-[10px] font-bold px-1.5 py-0.2 rounded-full hidden xl:inline">
-                  Bimoneda
-                </span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={onOpenUserSwitch}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-500 hover:text-slate-300 hover:bg-slate-800/60 transition border border-dashed border-slate-800"
-                title="Pestaña de Nómina bloqueada para rol Vendedor. Requiere inicio de sesión como Administrador."
-              >
-                <Lock className="w-3.5 h-3.5 text-purple-500/70" />
-                <span>Nómina (Admin)</span>
-              </button>
-            )}
-
-            <button
-              id="nav-tab-sales"
-              onClick={() => onNavigate('sales')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-all ${
-                currentView === 'sales'
-                  ? 'bg-slate-700 text-white'
-                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-              }`}
-            >
-              <Receipt className="w-4 h-4" />
-              <span>Ventas</span>
-            </button>
+              return (
+                <button
+                  key={tab.id}
+                  id={tab.id}
+                  onClick={() => onNavigate(tab.view)}
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                    isActive
+                      ? tab.activeColor
+                      : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-white' : tab.iconColor}`} />
+                  <span>{tab.label}</span>
+                  {tab.badge}
+                </button>
+              );
+            })}
           </nav>
-
-          {/* Right Tab utilities */}
-          <div className="flex items-center gap-1.5 min-w-max ml-2">
-            {/* PWA App Installer Button */}
-            <button
-              id="nav-tab-install-pwa"
-              type="button"
-              onClick={onOpenPWAInstall}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm ${
-                isInstalled
-                  ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-700/50 hover:bg-emerald-900/60'
-                  : isInstallable
-                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-500 hover:to-teal-500 animate-pulse shadow-emerald-950'
-                    : 'bg-slate-800/90 text-cyan-300 border border-cyan-500/30 hover:bg-slate-750 hover:text-cyan-200'
-              }`}
-              title="Instalar NegoFact en Windows o Android como Aplicación Web (PWA)"
-            >
-              <Download className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden sm:inline">
-                {isInstalled ? 'App Instalada' : 'Instalar App'}
-              </span>
-              <span className="sm:hidden">Instalar</span>
-              <span className="text-[10px] px-1 py-0.2 rounded bg-black/30 font-normal hidden md:inline">
-                {platform === 'android' ? 'Android' : 'Windows/PC'}
-              </span>
-            </button>
-
-            {onOpenManual && (
-              <button
-                id="nav-tab-manual"
-                type="button"
-                onClick={onOpenManual}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all text-purple-300 hover:text-white bg-purple-950/60 border border-purple-700/50 hover:bg-purple-900/60 shadow-xs"
-                title="Manual de Operaciones Comerciales, Fiscales y Nómina (PDF y Lector Interactivo)"
-              >
-                <BookOpen className="w-3.5 h-3.5 text-purple-400" />
-                <span className="hidden xl:inline">Manual de Operaciones</span>
-                <span className="xl:hidden">Manual</span>
-              </button>
-            )}
-
-            <button
-              id="nav-tab-docs"
-              onClick={onOpenArchitecture}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all text-emerald-400/80 hover:bg-slate-800 hover:text-emerald-300 border border-emerald-500/20"
-              title="Diagrama de Base de Datos SQL, Lógica TS y Endpoints API"
-            >
-              <Code className="w-3.5 h-3.5" />
-              <span className="hidden lg:inline">Schema & Docs</span>
-            </button>
-
-            <button
-              id="nav-tab-settings"
-              onClick={onOpenSettings}
-              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition"
-              title="Configuración de Empresa, Usuarios y Cuentas"
-            >
-              <Settings className="w-4 h-4" />
-            </button>
-          </div>
         </div>
       </header>
 
-      {/* MOBILE BOTTOM NAVIGATION BAR (Phones & Small Tablets) */}
-      <nav aria-label="Navegación móvil" className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 border-t border-slate-800/90 backdrop-blur-xl shadow-2xl px-1.5 py-1 flex items-center justify-around">
+      {/* MOBILE BOTTOM NAVIGATION BAR: Includes tranquil "Inicio" + fast POS */}
+      <nav aria-label="Navegación móvil" className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 border-t border-slate-800 backdrop-blur-md px-2 py-1 flex items-center justify-around">
+        {/* 1. Inicio */}
+        <button
+          onClick={() => onNavigate('home')}
+          className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl min-w-[50px] transition-all touch-manipulation ${
+            currentView === 'home' 
+              ? 'text-emerald-400 font-bold bg-emerald-950/50 scale-105' 
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Home className="w-5 h-5 mb-0.5" />
+          <span className="text-[10px] tracking-tight">Inicio</span>
+        </button>
+
+        {/* 2. POS Mostrador */}
         <button
           onClick={() => onNavigate('pos')}
-          className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl min-w-[56px] transition-all touch-manipulation ${
-            currentView === 'pos'
-              ? 'text-emerald-400 font-bold bg-emerald-950/50 scale-105'
+          className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl min-w-[50px] transition-all touch-manipulation ${
+            currentView === 'pos' 
+              ? 'text-emerald-400 font-bold bg-emerald-950/50 scale-105' 
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
@@ -499,78 +486,42 @@ export const Navbar: React.FC<NavbarProps> = ({
           <span className="text-[10px] tracking-tight">POS</span>
         </button>
 
-        <button
-          onClick={() => onNavigate('quotes')}
-          className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl min-w-[56px] transition-all touch-manipulation ${
-            currentView === 'quotes'
-              ? 'text-blue-400 font-bold bg-blue-950/50 scale-105'
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <FileText className="w-5 h-5 mb-0.5" />
-          <span className="text-[10px] tracking-tight">Cotizar</span>
-        </button>
-
+        {/* 3. Inventario */}
         <button
           onClick={() => onNavigate('inventory')}
-          className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl min-w-[56px] transition-all relative touch-manipulation ${
-            currentView === 'inventory'
-              ? 'text-indigo-400 font-bold bg-indigo-950/50 scale-105'
+          className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl min-w-[50px] transition-all relative touch-manipulation ${
+            currentView === 'inventory' 
+              ? 'text-indigo-400 font-bold bg-indigo-950/50 scale-105' 
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
           <Package className="w-5 h-5 mb-0.5" />
           <span className="text-[10px] tracking-tight">Inventario</span>
           {lowStockCount > 0 && (
-            <span className="absolute top-0 right-1 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-slate-950" />
+            <span className="absolute top-0.5 right-2 w-2 h-2 rounded-full bg-amber-400" />
           )}
         </button>
 
+        {/* 4. Fiados */}
         <button
           onClick={() => onNavigate('debts')}
-          className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl min-w-[56px] transition-all relative touch-manipulation ${
-            currentView === 'debts'
-              ? 'text-amber-400 font-bold bg-amber-950/50 scale-105'
+          className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl min-w-[50px] transition-all relative touch-manipulation ${
+            currentView === 'debts' 
+              ? 'text-amber-400 font-bold bg-amber-950/50 scale-105' 
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
           <BookOpen className="w-5 h-5 mb-0.5" />
           <span className="text-[10px] tracking-tight">Fiados</span>
           {pendingDebtsCount > 0 && (
-            <span className="absolute top-0 right-1 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-slate-950" />
+            <span className="absolute top-0.5 right-2 w-2 h-2 rounded-full bg-rose-500" />
           )}
         </button>
 
-        {isAdmin ? (
-          <button
-            onClick={() => onNavigate('finance')}
-            className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl min-w-[56px] transition-all touch-manipulation ${
-              currentView === 'finance'
-                ? 'text-indigo-400 font-bold bg-indigo-950/50 scale-105'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Building2 className="w-5 h-5 mb-0.5" />
-            <span className="text-[10px] tracking-tight">Finanzas</span>
-          </button>
-        ) : (
-          <button
-            onClick={() => onNavigate('sales')}
-            className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl min-w-[56px] transition-all touch-manipulation ${
-              currentView === 'sales'
-                ? 'text-emerald-400 font-bold bg-emerald-950/50 scale-105'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Receipt className="w-5 h-5 mb-0.5" />
-            <span className="text-[10px] tracking-tight">Ventas</span>
-          </button>
-        )}
-
-        {/* More Options Drawer Button */}
+        {/* 5. Más opciones */}
         <button
           onClick={() => setIsMobileMoreMenuOpen(true)}
-          className="flex flex-col items-center justify-center py-1 px-2 rounded-xl min-w-[56px] text-slate-400 hover:text-white transition-all touch-manipulation"
+          className="flex flex-col items-center justify-center py-1 px-2 rounded-xl min-w-[50px] text-slate-400 hover:text-slate-200 transition-all touch-manipulation"
         >
           <MoreHorizontal className="w-5 h-5 mb-0.5" />
           <span className="text-[10px] tracking-tight">Más</span>
@@ -579,27 +530,58 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Mobile More Options Slide-up Drawer Modal */}
       {isMobileMoreMenuOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in">
-          <div className="bg-slate-900 border border-slate-700 rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-md overflow-hidden text-slate-100 p-5 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-xs p-0 sm:p-4">
+          <div className="bg-slate-900 border border-slate-750 rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-md overflow-hidden text-slate-100 p-5 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2">
-                <span className="p-2 rounded-xl bg-slate-800 text-emerald-400">
-                  <Sparkles className="w-5 h-5" />
-                </span>
-                <div>
-                  <h3 className="font-bold text-sm text-white">Opciones del Sistema</h3>
-                  <p className="text-xs text-slate-400">Acceso rápido para teléfono y tablet</p>
-                </div>
+              <div>
+                <h3 className="font-bold text-sm text-white">Todos los Módulos</h3>
+                <p className="text-xs text-slate-400">Navegación completa y administración</p>
               </div>
               <button
                 onClick={() => setIsMobileMoreMenuOpen(false)}
                 className="p-1.5 rounded-xl text-slate-400 hover:text-white bg-slate-800"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => {
+                  setIsMobileMoreMenuOpen(false);
+                  onNavigate('home');
+                }}
+                className={`p-3 rounded-xl border text-left flex items-center gap-2.5 transition ${
+                  currentView === 'home'
+                    ? 'bg-emerald-950/80 border-emerald-600 text-white'
+                    : 'bg-slate-950/70 border-slate-800 text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                <Home className="w-4 h-4 text-emerald-400 shrink-0" />
+                <div>
+                  <div className="font-bold text-xs">Inicio / Dashboard</div>
+                  <div className="text-[10px] text-slate-500">Alertas y resumen</div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsMobileMoreMenuOpen(false);
+                  onNavigate('quotes');
+                }}
+                className={`p-3 rounded-xl border text-left flex items-center gap-2.5 transition ${
+                  currentView === 'quotes'
+                    ? 'bg-blue-950/80 border-blue-600 text-white'
+                    : 'bg-slate-950/70 border-slate-800 text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                <FileText className="w-4 h-4 text-blue-400 shrink-0" />
+                <div>
+                  <div className="font-bold text-xs">Cotizaciones</div>
+                  <div className="text-[10px] text-slate-500">Presupuestos formal</div>
+                </div>
+              </button>
+
               <button
                 onClick={() => {
                   setIsMobileMoreMenuOpen(false);
@@ -608,7 +590,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className={`p-3 rounded-xl border text-left flex items-center gap-2.5 transition ${
                   currentView === 'customers'
                     ? 'bg-teal-950/80 border-teal-600 text-white'
-                    : 'bg-slate-950/80 border-slate-800 text-slate-300 hover:bg-slate-800'
+                    : 'bg-slate-950/70 border-slate-800 text-slate-300 hover:bg-slate-800'
                 }`}
               >
                 <Users className="w-4 h-4 text-teal-400 shrink-0" />
@@ -629,14 +611,36 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }}
                 className={`p-3 rounded-xl border text-left flex items-center gap-2.5 transition ${
                   currentView === 'payroll'
-                    ? 'bg-purple-950/80 border-purple-600 text-white'
-                    : 'bg-slate-950/80 border-slate-800 text-slate-300 hover:bg-slate-800'
+                    ? 'bg-fuchsia-950/80 border-fuchsia-600 text-white'
+                    : 'bg-slate-950/70 border-slate-800 text-slate-300 hover:bg-slate-800'
                 }`}
               >
-                <Briefcase className="w-4 h-4 text-purple-400 shrink-0" />
+                <Briefcase className="w-4 h-4 text-fuchsia-400 shrink-0" />
                 <div>
                   <div className="font-bold text-xs">Nómina LOTTT</div>
                   <div className="text-[10px] text-slate-500">Quincenas & Recibos</div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsMobileMoreMenuOpen(false);
+                  if (isAdmin) {
+                    onNavigate('finance');
+                  } else {
+                    onOpenUserSwitch();
+                  }
+                }}
+                className={`p-3 rounded-xl border text-left flex items-center gap-2.5 transition ${
+                  currentView === 'finance'
+                    ? 'bg-purple-950/80 border-purple-600 text-white'
+                    : 'bg-slate-950/70 border-slate-800 text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                <Building2 className="w-4 h-4 text-purple-400 shrink-0" />
+                <div>
+                  <div className="font-bold text-xs">Finanzas & Gastos</div>
+                  <div className="text-[10px] text-slate-500">Cuentas por pagar</div>
                 </div>
               </button>
 
@@ -647,14 +651,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }}
                 className={`p-3 rounded-xl border text-left flex items-center gap-2.5 transition ${
                   currentView === 'sales'
-                    ? 'bg-slate-800 border-slate-600 text-white'
-                    : 'bg-slate-950/80 border-slate-800 text-slate-300 hover:bg-slate-800'
+                    ? 'bg-cyan-950/80 border-cyan-600 text-white'
+                    : 'bg-slate-950/70 border-slate-800 text-slate-300 hover:bg-slate-800'
                 }`}
               >
-                <Receipt className="w-4 h-4 text-emerald-400 shrink-0" />
+                <Receipt className="w-4 h-4 text-cyan-400 shrink-0" />
                 <div>
                   <div className="font-bold text-xs">Historial Ventas</div>
-                  <div className="text-[10px] text-slate-500">Comprobantes</div>
+                  <div className="text-[10px] text-slate-500">Comprobantes & Reportes</div>
                 </div>
               </button>
 
@@ -663,9 +667,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                   setIsMobileMoreMenuOpen(false);
                   onOpenShiftModal();
                 }}
-                className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 hover:bg-slate-800 text-left flex items-center gap-2.5 transition text-slate-300"
+                className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 hover:bg-slate-800 text-left flex items-center gap-2.5 transition text-slate-300"
               >
-                <Wallet className="w-4 h-4 text-amber-400 shrink-0" />
+                <Wallet className="w-4 h-4 text-emerald-400 shrink-0" />
                 <div>
                   <div className="font-bold text-xs">Arqueo de Caja</div>
                   <div className="text-[10px] text-slate-500">Cierre Turno Z</div>
@@ -677,12 +681,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                   setIsMobileMoreMenuOpen(false);
                   onOpenUserSwitch();
                 }}
-                className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 hover:bg-slate-800 text-left flex items-center gap-2.5 transition text-slate-300"
+                className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 hover:bg-slate-800 text-left flex items-center gap-2.5 transition text-slate-300"
               >
                 <User className="w-4 h-4 text-blue-400 shrink-0" />
                 <div>
                   <div className="font-bold text-xs">Cambiar Usuario</div>
-                  <div className="text-[10px] text-slate-500">{currentUser?.name || 'Usuario'}</div>
+                  <div className="text-[10px] text-slate-500 truncate">{currentUser?.name || 'Usuario'}</div>
                 </div>
               </button>
 
@@ -691,33 +695,35 @@ export const Navbar: React.FC<NavbarProps> = ({
                   setIsMobileMoreMenuOpen(false);
                   onOpenSettings();
                 }}
-                className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 hover:bg-slate-800 text-left flex items-center gap-2.5 transition text-slate-300"
+                className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 hover:bg-slate-800 text-left flex items-center gap-2.5 transition text-slate-300 col-span-2"
               >
-                <Settings className="w-4 h-4 text-purple-400 shrink-0" />
+                <Settings className="w-4 h-4 text-slate-400 shrink-0" />
                 <div>
-                  <div className="font-bold text-xs">Configuración</div>
-                  <div className="text-[10px] text-slate-500">Datos & Respaldo</div>
+                  <div className="font-bold text-xs">Configuración del Negocio</div>
+                  <div className="text-[10px] text-slate-500">Parámetros fiscales, perfiles y respaldo</div>
                 </div>
               </button>
 
-              <button
-                onClick={() => {
-                  setIsMobileMoreMenuOpen(false);
-                  onOpenSyncModal?.();
-                }}
-                className="p-3 rounded-xl bg-slate-950/80 border border-emerald-500/30 hover:bg-slate-800 text-left flex items-center gap-2.5 transition text-slate-300 col-span-2"
-              >
-                <Radio className="w-4 h-4 text-emerald-400 shrink-0 animate-pulse" />
-                <div>
-                  <div className="font-bold text-xs flex items-center gap-1.5">
-                    <span>Sincronización Multi-Dispositivo</span>
-                    <span className="px-1.5 py-0.2 bg-emerald-950 text-emerald-300 text-[9px] rounded font-bold font-mono">
-                      {syncConnectedCount} {syncConnectedCount === 1 ? 'Activo' : 'Activos'}
-                    </span>
+              {onOpenSyncModal && (
+                <button
+                  onClick={() => {
+                    setIsMobileMoreMenuOpen(false);
+                    onOpenSyncModal();
+                  }}
+                  className="p-3 rounded-xl bg-slate-950/70 border border-emerald-500/30 hover:bg-slate-800 text-left flex items-center gap-2.5 transition text-slate-300 col-span-2"
+                >
+                  <Radio className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <div>
+                    <div className="font-bold text-xs flex items-center gap-1.5">
+                      <span>Sincronización Multi-Dispositivo</span>
+                      <span className="text-[10px] text-emerald-400 font-mono font-bold">
+                        · {syncConnectedCount} activo(s)
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-slate-500">Conectar teléfonos, tablets y PCs</div>
                   </div>
-                  <div className="text-[10px] text-slate-500">Conectar teléfonos, tablets y PCs en tiempo real</div>
-                </div>
-              </button>
+                </button>
+              )}
 
               {onOpenManual && (
                 <button
@@ -730,10 +736,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <BookOpen className="w-4 h-4 text-purple-400 shrink-0" />
                   <div>
                     <div className="font-bold text-xs flex items-center gap-1.5">
-                      <span>Manual de Operaciones & Régimen Legal</span>
+                      <span>Manual de Operaciones & Marco Legal</span>
                       <span className="px-1.5 py-0.2 bg-purple-900 text-purple-200 text-[9px] rounded font-bold">PDF</span>
                     </div>
-                    <div className="text-[10px] text-purple-300/80">Guía completa: SENIAT, IVA 16%, IGTF 3% y Nómina LOTTT</div>
+                    <div className="text-[10px] text-purple-300/80">SENIAT, IVA 16%, IGTF 3% y Nómina LOTTT</div>
                   </div>
                 </button>
               )}
@@ -743,15 +749,15 @@ export const Navbar: React.FC<NavbarProps> = ({
                   setIsMobileMoreMenuOpen(false);
                   onOpenPWAInstall();
                 }}
-                className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 hover:bg-slate-800 text-left flex items-center gap-2.5 transition text-slate-300 col-span-2"
+                className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 hover:bg-slate-800 text-left flex items-center gap-2.5 transition text-slate-300 col-span-2"
               >
                 <Download className="w-4 h-4 text-emerald-400 shrink-0" />
                 <div>
                   <div className="font-bold text-xs flex items-center gap-1.5">
-                    <span>Instalar App en Teléfono / PC</span>
+                    <span>Instalar Aplicación (PWA)</span>
                     <span className="px-1.5 py-0.2 bg-emerald-950 text-emerald-300 text-[9px] rounded font-bold">PWA</span>
                   </div>
-                  <div className="text-[10px] text-slate-500">Uso Offline en pantalla completa</div>
+                  <div className="text-[10px] text-slate-500">Uso en pantalla completa</div>
                 </div>
               </button>
             </div>

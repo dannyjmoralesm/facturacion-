@@ -459,8 +459,17 @@ export default function App() {
 
     // 2. Realtime subscriptions to Firestore collections
     const unsubProducts = subscribeProducts((updatedProducts) => {
-      setProducts(updatedProducts);
-      saveProducts(updatedProducts);
+      if (updatedProducts && updatedProducts.length > 0) {
+        setProducts(updatedProducts);
+        saveProducts(updatedProducts);
+      } else {
+        // Fallback to local products or initial products so repuestos are never lost
+        const local = getProducts();
+        if (local && local.length > 0) {
+          setProducts(local);
+          saveProducts(local);
+        }
+      }
     });
 
     const unsubSales = subscribeSales((updatedSales) => {

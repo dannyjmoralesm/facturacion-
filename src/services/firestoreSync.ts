@@ -58,18 +58,35 @@ export async function ensureFirestoreInitialized(): Promise<void> {
     const settingsRef = doc(db, 'settings', 'global');
     const settingsSnap = await getDoc(settingsRef);
 
-    // If global settings already exist, the database has already been initialized previously.
-    // Do NOT re-seed products, customers or suppliers because the user may have deleted or modified them!
+    // If global settings already exist, check if products collection is populated
     if (settingsSnap.exists()) {
       const existingData = settingsSnap.data();
       // If the stored rate is obsolete (less than 200 Bs, like the old 86.45 default), upgrade it to current live rate
       if (!existingData?.bcvRate || existingData.bcvRate < 200) {
         await updateDoc(settingsRef, {
-          bcvRate: 813.74,
+          bcvRate: 855.66,
           rateDate: new Date().toISOString().split('T')[0],
           lastUpdated: new Date().toISOString()
         }).catch(() => {});
       }
+
+      // Safeguard: Check if products collection exists in Firestore; if empty, restore from INITIAL_PRODUCTS
+      try {
+        const prodCheck = await getDocs(collection(db, 'products'));
+        if (prodCheck.empty) {
+          console.log('⚡ Products collection in Firestore was empty. Restoring catalog...');
+          const pBatch = writeBatch(db);
+          for (const prod of INITIAL_PRODUCTS) {
+            const pRef = doc(db, 'products', prod.id);
+            pBatch.set(pRef, cleanForFirestore(prod));
+          }
+          await pBatch.commit();
+          console.log('✅ Restored', INITIAL_PRODUCTS.length, 'products in Firestore.');
+        }
+      } catch (pErr) {
+        console.warn('Notice checking products in Firestore:', pErr);
+      }
+
       isInitialized = true;
       return;
     }

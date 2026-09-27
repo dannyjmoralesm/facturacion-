@@ -66,7 +66,14 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
   const [formMinStock, setFormMinStock] = useState('5');
   const [formUnit, setFormUnit] = useState('UND');
 
-  const categories = Array.from(new Set(products.map(p => p.category)));
+  const defaultCategories = ['ACEITE', 'CAUCHO', 'RODAMIENTO', 'MOTOR', 'ELECTRICO', 'FRENO', 'GUAYA'];
+  const categories = useMemo(() => {
+    const set = new Set<string>(defaultCategories);
+    (products || []).forEach(p => {
+      if (p.category) set.add(p.category);
+    });
+    return Array.from(set);
+  }, [products]);
 
   // Calculate live valuation stats at sale price
   const valuationStats = useMemo(() => {
@@ -113,14 +120,14 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
   const handleOpenCreate = () => {
     setEditingProduct(null);
     setFormName('');
-    setFormCode(`PROD-${Math.floor(100 + Math.random() * 900)}`);
+    setFormCode(`REP-${Math.floor(100 + Math.random() * 900)}`);
     setFormBarcode(`759${Math.floor(1000000000 + Math.random() * 9000000000)}`);
-    setFormCategory('Víveres');
+    setFormCategory(categories[0] || 'ACEITE');
     setFormType('physical');
     setFormPriceUSD('');
     setFormCostUSD('');
-    setFormStock('20');
-    setFormMinStock('5');
+    setFormStock('10');
+    setFormMinStock('2');
     setFormUnit('UND');
     setIsEditModalOpen(true);
   };
@@ -586,11 +593,33 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                   <label className="text-xs font-semibold text-slate-300 block mb-1">Categoría:</label>
                   <input
                     type="text"
+                    list="categories-list"
                     value={formCategory}
                     onChange={(e) => setFormCategory(e.target.value)}
-                    placeholder="Víveres, Bebidas, etc."
+                    placeholder="ACEITE, CAUCHO, MOTOR..."
                     className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
                   />
+                  <datalist id="categories-list">
+                    {categories.map(c => (
+                      <option key={c} value={c} />
+                    ))}
+                  </datalist>
+                  <div className="flex flex-wrap gap-1 mt-1.5 max-h-16 overflow-y-auto">
+                    {categories.slice(0, 6).map(c => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => setFormCategory(c)}
+                        className={`text-[10px] px-2 py-0.5 rounded-lg border transition ${
+                          formCategory === c 
+                            ? 'bg-emerald-600 text-white border-emerald-500 font-bold' 
+                            : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white'
+                        }`}
+                      >
+                        {c}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-300 block mb-1">Tipo de Ítem:</label>
